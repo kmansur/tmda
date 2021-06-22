@@ -244,7 +244,7 @@ for g in (gengroup, actngroup, msggroup):
 (opts, args) = parser.parse_args()
 
 if opts.full_version:
-    print Version.ALL
+    print(Version.ALL)
     sys.exit()
 
 if opts.config_file:
@@ -324,8 +324,8 @@ def main():
             pretend = opts.pretend
             ).initQueue()
         q.mainLoop()
-    except Errors.QueueError, obj:
-        print obj
+    except Errors.QueueError as obj:
+        print(obj)
         sys.exit(1)
 
 # This is the end my friend.

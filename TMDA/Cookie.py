@@ -27,9 +27,9 @@ import os
 import re
 import time
 
-import Defaults
-import HMAC
-import Util
+from . import Defaults
+from . import HMAC
+from . import Util
 
 
 def confirmationmac(time, pid, keyword=None):

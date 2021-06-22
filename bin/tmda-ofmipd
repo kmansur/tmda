@@ -86,8 +86,8 @@ class SMTPSession(asynchat.async_chat):
 
         # Debug tracing
 
-        print >> DEBUGSTREAM, 'Incoming connection from:', repr(self.__peer)
-        print >> DEBUGSTREAM, 'Incoming connection to:', repr(self._local)
+        print('Incoming connection from:', repr(self.__peer), file=DEBUGSTREAM)
+        print('Incoming connection to:', repr(self._local), file=DEBUGSTREAM)
 
         # Start SSL session, or perform plain-text signon
 
@@ -109,7 +109,7 @@ class SMTPSession(asynchat.async_chat):
         # decrypt the data and send it here over a pipe...
         # Note: Whilst tcpserver does provide these variables, the
         # xinetd/stunnel combination does not.
-        if opts.one_session and os.environ.has_key('TCPREMOTEIP'):
+        if opts.one_session and 'TCPREMOTEIP' in os.environ:
             self.__peerip = os.environ['TCPREMOTEIP']
             self.__peername = os.environ.get('TCPREMOTEHOST', None)
             if not self.__peername:
@@ -125,7 +125,7 @@ class SMTPSession(asynchat.async_chat):
             self._local = (self._localip, self._localport)
         else:
             # xinetd (or stunnel?) does at least provide REMOTE_HOST.
-            if opts.one_session and os.environ.has_key('REMOTE_HOST'):
+            if opts.one_session and 'REMOTE_HOST' in os.environ:
                 self.__peerip = os.environ['REMOTE_HOST']
                 self.__peerport = ''
                 self.__peer = (self.__peerip, self.__peerport)
@@ -196,7 +196,7 @@ class SMTPSession(asynchat.async_chat):
     def found_terminator(self):
         line = EMPTYSTRING.join(self.__line)
         if opts.debug:
-            print >> DEBUGSTREAM, 'Data:', repr(line)
+            print('Data:', repr(line), file=DEBUGSTREAM)
         self.__line = []
         if self.__state == self.COMMAND:
             if not line:
@@ -241,7 +241,7 @@ class SMTPSession(asynchat.async_chat):
                                                      self.__data,
                                                      self.__auth_username)
                 except:
-                    print >>DEBUGSTREAM, "process_message raised an exception:"
+                    print("process_message raised an exception:", file=DEBUGSTREAM)
                     import traceback
                     traceback.print_exc(DEBUGSTREAM)
                     raise
@@ -279,7 +279,7 @@ class SMTPSession(asynchat.async_chat):
             address = arg[keylen:].strip()
             if not address:
                 pass
-            elif address[0] == '<' and address[-1] == '>' and address <> '<>':
+            elif address[0] == '<' and address[-1] == '>' and address != '<>':
                 # Addresses can be in the form <person@dom.com> but watch out
                 # for null address, e.g. <>
                 address = address[1:-1]
@@ -310,7 +310,7 @@ class SMTPSession(asynchat.async_chat):
         if (not opts.fallback) and (remoteauth['enable'] or opts.authprog):
             return 0
         authdict = authfile2dict(opts.authfile)
-        if authdict.get(username.lower(), 0) <> password:
+        if authdict.get(username.lower(), 0) != password:
             return 0
         else:
             return 1
@@ -339,7 +339,7 @@ class SMTPSession(asynchat.async_chat):
         if (not opts.fallback) and (remoteauth['enable'] or opts.authprog):
             return 0
         authdict = authfile2dict(opts.authfile)
-        if authdict.get(username.lower(), 0) <> password:
+        if authdict.get(username.lower(), 0) != password:
             return 0
         else:
             return 1
@@ -361,7 +361,7 @@ class SMTPSession(asynchat.async_chat):
         if password == 0:
             return 0
         newhexdigest = hmac.HMAC(password, ticket, digestmod=md5).hexdigest()
-        if newhexdigest <> hexdigest:
+        if newhexdigest != hexdigest:
             return 0
         else:
             return 1
@@ -387,14 +387,14 @@ class SMTPSession(asynchat.async_chat):
             self.push('501 malformed AUTH input')
         else:
             self.push('535 AUTH failed')
-        print >> DEBUGSTREAM, 'Auth: ', 'failed for user', \
-              "'%s'" % self.__auth_username
+        print('Auth: ', 'failed for user', \
+              "'%s'" % self.__auth_username, file=DEBUGSTREAM)
         self.__smtpauth = 0
 
     def auth_notify_succeed(self):
         self.push('235 AUTH successful')
-        print >> DEBUGSTREAM, 'Auth: ', 'succeeded for user', \
-              "'%s'" % self.__auth_username
+        print('Auth: ', 'succeeded for user', \
+              "'%s'" % self.__auth_username, file=DEBUGSTREAM)
         os.environ['LOGIN'] = self.__auth_username
         self.__smtpauth = 1
 
@@ -456,7 +456,7 @@ class SMTPSession(asynchat.async_chat):
         responses.append('%s' % FQDN)
         if not self.__can_starttls or opts.tls == 'optional':
             responses.append('AUTH %s' %
-                (' '.join(map(lambda s: s.upper(), self.__sasl_types))))
+                (' '.join([s.upper() for s in self.__sasl_types])))
         if self.__can_starttls:
             responses.append('STARTTLS')
         for r in responses[:-1]:
@@ -467,8 +467,8 @@ class SMTPSession(asynchat.async_chat):
         # to add later.
         rh = []
         rh.append('from %s' % (arg))
-        if ((arg.lower() <> self.__peername.lower()) and
-            (self.__peername.lower() <> self.__peerip)):
+        if ((arg.lower() != self.__peername.lower()) and
+            (self.__peername.lower() != self.__peerip)):
             rh.append('(%s [%s])' % (self.__peername, self.__peerip))
         else:
             rh.append('(%s)' % (self.__peerip))
@@ -496,7 +496,7 @@ class SMTPSession(asynchat.async_chat):
         if not self.__smtpauth:
             self.auth_notify_required()
             return
-        print >> DEBUGSTREAM, '===> MAIL', arg
+        print('===> MAIL', arg, file=DEBUGSTREAM)
         address = self.__getaddr('FROM:', arg)
         if not address:
             self.push('501 Syntax: MAIL FROM:<address>')
@@ -505,11 +505,11 @@ class SMTPSession(asynchat.async_chat):
             self.push('503 Error: nested MAIL command')
             return
         self.__mailfrom = address
-        print >> DEBUGSTREAM, 'sender:', self.__mailfrom
+        print('sender:', self.__mailfrom, file=DEBUGSTREAM)
         self.push('250 Ok')
 
     def smtp_RCPT(self, arg):
-        print >> DEBUGSTREAM, '===> RCPT', arg
+        print('===> RCPT', arg, file=DEBUGSTREAM)
         if not self.__mailfrom:
             self.push('503 Error: need MAIL command')
             return
@@ -518,7 +518,7 @@ class SMTPSession(asynchat.async_chat):
             self.push('501 Syntax: RCPT TO: <address>')
             return
         self.__rcpttos.append(address)
-        print >> DEBUGSTREAM, 'recips:', self.__rcpttos
+        print('recips:', self.__rcpttos, file=DEBUGSTREAM)
         self.push('250 Ok')
 
     def smtp_RSET(self, arg):
@@ -590,9 +590,8 @@ class SMTPServer(asyncore.dispatcher):
         self.set_reuse_addr()
         self.bind(localaddr)
         self.listen(5)
-        print >> DEBUGSTREAM, \
-              'tmda-ofmipd started at %s\n\tListening on %s:%d' % \
-              (Util.make_date(), localaddr[0], localaddr[1])
+        print('tmda-ofmipd started at %s\n\tListening on %s:%d' % \
+              (Util.make_date(), localaddr[0], localaddr[1]), file=DEBUGSTREAM)
 
     def readable(self):
         if len(asyncore.socket_map) > opts.connections:
@@ -612,7 +611,7 @@ def warning(msg='', exit=1):
     delimiter = '*' * 70
     if msg:
         msg = Util.wraptext(msg)
-        print >> sys.stderr, '\n', delimiter, '\n', msg, '\n', delimiter, '\n'
+        print('\n', delimiter, '\n', msg, '\n', delimiter, '\n', file=sys.stderr)
     if exit:
         sys.exit()
 
@@ -640,7 +639,7 @@ def pipecmd(command, *strings):
 def run_authprog(username, password):
     """authprog should return 0 for auth ok, and a positive integer in
     case of a problem."""
-    print >> DEBUGSTREAM, "Trying authprog method"
+    print("Trying authprog method", file=DEBUGSTREAM)
     cmd = "/bin/sh -c 'exec %s 3<&0'" % (opts.authprog,)
     return pipecmd(cmd, '%s\0%s\0' % (username, password))
 
@@ -662,8 +661,8 @@ def run_remoteauth(username, password, localip):
                 authport = authdata[1]
             else:
                 authport = remoteauth['port']
-    print >> DEBUGSTREAM, "trying %s authentication for %s@%s:%s" % \
-          (remoteauth['proto'], username, authhost, authport)
+    print("trying %s authentication for %s@%s:%s" % \
+          (remoteauth['proto'], username, authhost, authport), file=DEBUGSTREAM)
     if remoteauth['proto'] == 'imap':
         M = imaplib.IMAP4(authhost, int(authport))
         try:
@@ -671,8 +670,8 @@ def run_remoteauth(username, password, localip):
             M.logout()
             return 1
         except:
-            print >> DEBUGSTREAM, "imap authentication for %s@%s failed" % \
-                  (username, authhost)
+            print("imap authentication for %s@%s failed" % \
+                  (username, authhost), file=DEBUGSTREAM)
             return 0
     elif remoteauth['proto'] == 'imaps':
         M = imaplib.IMAP4_SSL(authhost, int(authport))
@@ -681,8 +680,8 @@ def run_remoteauth(username, password, localip):
             M.logout()
             return 1
         except:
-            print >> DEBUGSTREAM, "imaps authentication for %s@%s failed" % \
-                  (username, authhost)
+            print("imaps authentication for %s@%s failed" % \
+                  (username, authhost), file=DEBUGSTREAM)
             return 0
     elif remoteauth['proto'] in ('pop3', 'apop'):
         M = poplib.POP3(authhost, int(authport))
@@ -697,8 +696,8 @@ def run_remoteauth(username, password, localip):
                 M.quit()
                 return 1
         except:
-            print >> DEBUGSTREAM, "%s authentication for %s@%s failed" % \
-                  (remoteauth['proto'], username, authhost)
+            print("%s authentication for %s@%s failed" % \
+                  (remoteauth['proto'], username, authhost), file=DEBUGSTREAM)
             return 0
     elif remoteauth['proto'] == 'ldap':
         import ldap
@@ -708,12 +707,12 @@ def run_remoteauth(username, password, localip):
             M.unbind_s()
             return 1
         except:
-            print >> DEBUGSTREAM, "ldap authentication for %s@%s failed" % \
-                  (username, authhost)
+            print("ldap authentication for %s@%s failed" % \
+                  (username, authhost), file=DEBUGSTREAM)
             return 0
     # proto not implemented
-    print >> DEBUGSTREAM, "Error: protocol %s not implemented" % \
-            remoteauth['proto']
+    print("Error: protocol %s not implemented" % \
+            remoteauth['proto'], file=DEBUGSTREAM)
     return 0
 
 
@@ -787,11 +786,11 @@ def process_message_vdomain(peer, mailfrom, rcpttos, data, auth_username):
     # user.
     if running_as_root:
         pid = os.fork()
-        if pid <> 0:
+        if pid != 0:
             rpid, status = os.wait()
             # Did tmda-inject succeed?
-            if status <> 0:
-                raise IOError, 'tmda-inject failed!'
+            if status != 0:
+                raise IOError('tmda-inject failed!')
             return
         else:
             # The 'prepend' is the system user in charge of this virtual
@@ -800,7 +799,7 @@ def process_message_vdomain(peer, mailfrom, rcpttos, data, auth_username):
                                              opts.vdomainspath)
             if not prepend:
                 err = 'Error: "%s" is not a virtual domain' % (domain,)
-                print >> DEBUGSTREAM, err
+                print(err, file=DEBUGSTREAM)
                 os._exit(-1)
             os.seteuid(0)
             os.setgid(Util.getgid(prepend))
@@ -811,7 +810,7 @@ def process_message_vdomain(peer, mailfrom, rcpttos, data, auth_username):
     # From here on, we're either in the child (pid == 0) or we're not
     # running as root, so we haven't forked.
     vhomedir = Util.getvuserhomedir(user, domain, opts.vhomescript)
-    print >> DEBUGSTREAM, 'vuser homedir: "%s"' % (vhomedir,)
+    print('vuser homedir: "%s"' % (vhomedir,), file=DEBUGSTREAM)
     # This is so "~" will work in the .tmda/* files.
     os.environ['HOME'] = vhomedir
     # change inject_cmd to pass the message through if
@@ -824,8 +823,8 @@ def process_message_vdomain(peer, mailfrom, rcpttos, data, auth_username):
         inject_cmd = [sendmail_program, '-f', mailfrom, '-i', '--'] + rcpttos
     try:
         Util.pipecmd(inject_cmd, data)
-    except Exception, err:
-        print >> DEBUGSTREAM, 'Error:', err
+    except Exception as err:
+        print('Error:', err, file=DEBUGSTREAM)
         if running_as_root:
             os._exit(-1)
     if running_as_root:
@@ -866,15 +865,15 @@ def process_message_sysuser(peer, mailfrom, rcpttos, data, auth_username):
             os.setuid(Util.getuid(auth_username))
             try:
                 Util.pipecmd(inject_cmd, data)
-            except Exception, err:
-                print >> DEBUGSTREAM, 'Error:', err
+            except Exception as err:
+                print('Error:', err, file=DEBUGSTREAM)
                 os._exit(-1)
             os._exit(0)
         else:
             rpid, status = os.wait()
             # Did tmda-inject succeed?
-            if status <> 0:
-                raise IOError, 'tmda-inject failed!'
+            if status != 0:
+                raise IOError('tmda-inject failed!')
     else:
         # no need to fork
         Util.pipecmd(inject_cmd, data)
@@ -1137,7 +1136,7 @@ for g in (gengroup, congroup, authgroup, virtgroup):
 (opts, args) = parser.parse_args()
 
 if opts.full_version:
-    print Version.ALL
+    print(Version.ALL)
     sys.exit()
 if opts.vhomescript and opts.configdir:
     parser.error("options '--vhome-script' and '--configdir' are incompatible!")
@@ -1153,9 +1152,9 @@ if opts.remoteauth:
         authproto, autharg = autharg.split('://', 1)
     except ValueError:
         authproto, autharg = autharg, None
-    if authproto not in defaultauthports.keys():
-        raise ValueError, 'Protocol not supported: ' + authproto + \
-            '\nPlease pick one of ' + repr(defaultauthports.keys())
+    if authproto not in list(defaultauthports.keys()):
+        raise ValueError('Protocol not supported: ' + authproto + \
+            '\nPlease pick one of ' + repr(list(defaultauthports.keys())))
     remoteauth['proto'] = authproto
     remoteauth['port'] = defaultauthports[authproto]
     if autharg:
@@ -1173,9 +1172,9 @@ if opts.remoteauth:
             remoteauth['host'] = authhost
         if authport:
             remoteauth['port'] = authport
-    print >> DEBUGSTREAM, "auth method: %s://%s:%s/%s" % \
+    print("auth method: %s://%s:%s/%s" % \
         (remoteauth['proto'], remoteauth['host'],
-         remoteauth['port'], remoteauth['dn'])
+         remoteauth['port'], remoteauth['dn']), file=DEBUGSTREAM)
     remoteauth['enable'] = 1
 
 if running_as_root:
@@ -1202,32 +1201,29 @@ if remoteauth['proto'] == 'ldap':
     try:
         import ldap
     except ImportError:
-        raise ImportError, \
-              'python-ldap (http://python-ldap.sf.net/) required.'
+        raise ImportError('python-ldap (http://python-ldap.sf.net/) required.')
     if remoteauth['dn'] == '':
-        print >> DEBUGSTREAM, "Error: Missing ldap dn\n"
+        print("Error: Missing ldap dn\n", file=DEBUGSTREAM)
         raise ValueError
     try:
         remoteauth['dn'].index('%s')
     except:
-        print >> DEBUGSTREAM, "Error: Invalid ldap dn\n"
+        print("Error: Invalid ldap dn\n", file=DEBUGSTREAM)
         raise ValueError
 
 if opts.ssl or opts.tls:
     if opts.ssl and opts.tls:
-        raise ValueError, 'Can\'t do SSL and TLS at the same time'
+        raise ValueError('Can\'t do SSL and TLS at the same time')
 
     try:
         from tlslite.api import *
         from tlslite.TLSConnection import TLSConnection
         from tlslite.integration.AsyncStateMachine import AsyncStateMachine
     except ImportError:
-        raise ImportError, \
-              'tlslite (http://trevp.net/tlslite/) required.'
+        raise ImportError('tlslite (http://trevp.net/tlslite/) required.')
 
     if (not opts.ssl_cert) or (not opts.ssl_key):
-        raise ValueError, \
-            '--ssl-cert and --ssl-key are required when using --ssl or --tls'
+        raise ValueError('--ssl-cert and --ssl-key are required when using --ssl or --tls')
 
     fhc = file(os.path.expanduser(opts.ssl_cert), 'r')
     datac = fhc.read()
@@ -1352,8 +1348,7 @@ def main():
     if not (remoteauth['enable'] or opts.authprog) or opts.fallback:
         authfile_mode = Util.getfilemode(opts.authfile)
         if authfile_mode not in (400, 600):
-            raise IOError, \
-                opts.authfile + ' must be chmod 400 or 600!'
+            raise IOError(opts.authfile + ' must be chmod 400 or 600!')
 
     if opts.vhomescript:
         process_msg_func = process_message_vdomain
@@ -1373,9 +1368,8 @@ def main():
         # check ownership of authfile if using only remote
         # authentication.
         if not (remoteauth['enable'] or opts.authprog) or opts.fallback:
-            if Util.getfileuid(opts.authfile) <> pw_uid:
-                raise IOError, \
-                    opts.authfile + ' must be owned by UID ' + str(pw_uid)
+            if Util.getfileuid(opts.authfile) != pw_uid:
+                raise IOError(opts.authfile + ' must be owned by UID ' + str(pw_uid))
         # Set group ID
         os.setegid(Util.getgid(opts.username))
         # Set supplemental group ids
@@ -1385,13 +1379,13 @@ def main():
 
     # Daemonize the process if required
     if not (opts.foreground or opts.one_session):
-        if os.fork() <> 0:
+        if os.fork() != 0:
             sys.exit()
 
         if True:
             os.setsid()
 
-            if os.fork() <> 0:
+            if os.fork() != 0:
                 sys.exit()
 
             os.setpgrp()

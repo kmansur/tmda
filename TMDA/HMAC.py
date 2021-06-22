@@ -42,7 +42,7 @@ _opad="\x5C"*64
 
 _itrans = array('B', [0]*256) 
 _otrans = array('B', [0]*256)     
-for i in xrange(256): 
+for i in range(256): 
     _itrans[i] = i ^ 0x36 
     _otrans[i] = i ^ 0x5c 
 _itrans = _itrans.tostring() 

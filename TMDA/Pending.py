@@ -30,9 +30,9 @@ import os
 import sys
 import time
 
-import Defaults
-import Errors
-import Util
+from . import Defaults
+from . import Errors
+from . import Util
 from TMDA.Queue.Queue import Queue
 
 
@@ -76,7 +76,7 @@ class Queue:
     def initQueue(self):
         """Initialize the queue with the given parameters (see __init__)."""
 	if not Q.exists():
-	    raise Errors.QueueError, 'Pending Queue does not exist, exiting.'
+	    raise Errors.QueueError('Pending Queue does not exist, exiting.')
 
         # Replace any `-' in the message list with those messages provided
         # via standard input.  (Since it's pointless to call it twice,
@@ -221,7 +221,7 @@ class Queue:
             self.count = self.count + 1
             try:
                 M = Message(msgid, self.command_recipient)
-            except Errors.MessageError, obj:
+            except Errors.MessageError as obj:
                 self.cPrint(obj)
                 continue
 
@@ -311,7 +311,7 @@ class InteractiveQueue(Queue):
             if Defaults.PENDING_BLACKLIST_APPEND:
                 message = message + ' / [b]lack'
             message = message + ' / [q]uit) [%s]: '
-            inp = raw_input(message % self.dispose_def)
+            inp = input(message % self.dispose_def)
             ans = inp[0:1].lower()
             if ans == "":
                 self.dispose = self.dispose_def
@@ -330,7 +330,7 @@ class InteractiveQueue(Queue):
             elif ans == "q":
                 return 0
             else:
-                self.Print('\n', "I don't understand %s" % (`inp`))
+                self.Print('\n', "I don't understand %s" % (repr(inp)))
                 self.dispose = 'pass'
         except KeyboardInterrupt:
             self.Print()
@@ -355,7 +355,7 @@ class Message:
     def __init__(self, msgid, recipient = None, fullParse = False):
         self.msgid = msgid
         if not Q.find_message(self.msgid):
-	    raise Errors.MessageError, '%s not found!' % self.msgid
+	    raise Errors.MessageError('%s not found!' % self.msgid)
         self.msgobj = Q.fetch_message(self.msgid, fullParse=fullParse)
 	self.recipient = recipient
         if self.recipient is None:
@@ -367,7 +367,7 @@ class Message:
 
     def release(self):
         """Release a message from the pending queue."""
-        import Cookie
+        from . import Cookie
         if Defaults.PENDING_RELEASE_APPEND:
             Util.append_to_file(self.append_address,
                                 Defaults.PENDING_RELEASE_APPEND)
@@ -389,8 +389,8 @@ class Message:
         self.msgobj['X-TMDA-Released'] = Util.make_date()
 	# For messages released via tmda-cgi, add the IP address and
 	# browser info of the releaser for easier tracing.
-	if os.environ.has_key('REMOTE_ADDR') and \
-		os.environ.has_key('HTTP_USER_AGENT'):
+	if 'REMOTE_ADDR' in os.environ and \
+		'HTTP_USER_AGENT' in os.environ:
 	    cgi_header = "%s (%s)" % (os.environ.get('REMOTE_ADDR'), 
 				      os.environ.get('HTTP_USER_AGENT'))
 	    del self.msgobj['X-TMDA-CGI']
@@ -413,8 +413,7 @@ class Message:
             if Defaults.PENDING_WHITELIST_RELEASE == 1:
                 self.release()
         else:
-            raise Errors.ConfigError, \
-                  'PENDING_WHITELIST_APPEND not defined!'
+            raise Errors.ConfigError('PENDING_WHITELIST_APPEND not defined!')
 
     def blacklist(self):
         """Blacklist the message sender."""
@@ -422,8 +421,7 @@ class Message:
             Util.append_to_file(self.append_address,
                                 Defaults.PENDING_BLACKLIST_APPEND)
         else:
-            raise Errors.ConfigError, \
-                  'PENDING_BLACKLIST_APPEND not defined!'
+            raise Errors.ConfigError('PENDING_BLACKLIST_APPEND not defined!')
 
     def pager(self):
         Util.pager(self.show())
@@ -468,7 +466,7 @@ class Message:
     def getConfirmAddress(self):
         if not self.confirm_accept_address:
             if self.recipient:
-                import Cookie
+                from . import Cookie
                 (timestamp, pid) = self.msgid.split('.')
                 self.confirm_accept_address =   Cookie.make_confirm_address(
                                                 self.recipient, timestamp, pid,
