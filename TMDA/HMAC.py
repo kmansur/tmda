@@ -33,44 +33,34 @@ Based on code from p2.py
 Copyright (C) 2002 Paul Rubin
 """
 
-from array import array
-import sha
+import hashlib
+import hmac as _hmac
 
 
-_ipad="\x36"*64
-_opad="\x5C"*64
+def _as_bytes(value):
+    """Convert Python 2 byte strings without changing their contents."""
+    if isinstance(value, str):
+        return value.encode('latin-1')
+    return value
 
-_itrans = array('B', [0]*256) 
-_otrans = array('B', [0]*256)     
-for i in range(256): 
-    _itrans[i] = i ^ 0x36 
-    _otrans[i] = i ^ 0x5c 
-_itrans = _itrans.tostring() 
-_otrans = _otrans.tostring() 
-
-newh = sha.new
 
 class hmac:
+    """Compatibility wrapper for TMDA's original HMAC-SHA1 interface."""
+
     def __init__(self, k, m=None):
         if isinstance(k, hmac):
-            self.inner = k.inner.copy()
-            self.outer = k.outer.copy()
+            self._context = k._context.copy()
         else:
-            self.outer = newh()
-            self.inner = newh()
-            if len(k) > 64:
-                k=newh(k).digest()
-            k = k + chr(0)*(64-len(k))
-            self.inner.update((k.translate(_itrans)+_ipad)[:64])
-            self.outer.update((k.translate(_otrans)+_opad)[:64])
-            if (m):
+            self._context = _hmac.new(_as_bytes(k), digestmod=hashlib.sha1)
+            if m is not None:
                 self.update(m)
+
     def update(self, m):
-        self.inner.update(m)
+        self._context.update(_as_bytes(m))
+
     def digest(self):
-        h=self.outer.copy()
-        h.update(self.inner.digest())
-        return h.digest()
+        return self._context.digest()
+
 
 def new(k, m=None):
     return hmac(k, m)
