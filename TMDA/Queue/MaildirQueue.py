@@ -249,7 +249,7 @@ class MaildirQueue(Queue):
             except OSError:
                 # Not running as root, can't chown file.
                 pass
-            fp.write(message.encode('utf-8') if isinstance(message, str) else message)
+            fp.write(message.encode('latin-1') if isinstance(message, str) else message)
             fp.flush()
             os.fsync(fp.fileno())
             fp.close()
