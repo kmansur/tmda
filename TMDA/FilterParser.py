@@ -30,7 +30,7 @@ Filter file syntax documented in htdocs/config-filter.html
 
 
 import os
-import popen2
+import subprocess
 import re
 import string
 import sys
@@ -76,7 +76,7 @@ class Macro:
     """Macro definition as parsed by the filter parser."""
 
     macro_words = re.compile(r'([_a-zA-Z][_\w]*)')
-    macro_chars = '_' + string.digits + string.letters
+    macro_chars = '_' + string.digits + string.ascii_letters
 
     def __init__(self, name):
         self.name = name
@@ -409,10 +409,10 @@ class FilterParser:
             if self.bol_comment.match(original_line):
                 continue
             # substitute space characters for tab characters
-            line = string.replace(original_line, '\t', ' ')
+            line = original_line.replace('\t', ' ')
             # lose end-of-line comments and trailing whitespace
-            line = string.split(line, ' #')[0]
-            line = string.rstrip(line)
+            line = line.split(' #')[0]
+            line = line.rstrip()
             # empty line may signify end of current rule
             if line == '':
                 if rule:
@@ -728,9 +728,9 @@ class FilterParser:
         cdb = cdb.init(pathname)
         found_match = 0
         for key in keys:
-            if key and string.lower(key) in cdb:
+            if key and key.lower() in cdb:
                 found_match = 1
-                cdb_value = cdb[string.lower(key)]
+                cdb_value = cdb[key.lower()]
                 # If there is an entry for this key,
                 # we consider it an overriding action
                 # specification.
@@ -749,9 +749,9 @@ class FilterParser:
         dbm = dbm.open(pathname, 'r')
         found_match = 0
         for key in keys:
-            if key and string.lower(key) in dbm:
+            if key and key.lower() in dbm:
                 found_match = 1
-                dbm_value = dbm[string.lower(key)]
+                dbm_value = dbm[key.lower()]
                 # If there is an entry for this key,
                 # we consider it an overriding action
                 # specification.
@@ -884,7 +884,7 @@ class FilterParser:
         line = None
         found_match = None
         for (source, args, match, actions, lineno) in self.filterlist:
-            source = string.lower(source)
+            source = source.lower()
             # set up the keys for searching
             if source.startswith('from') and senders:
                 keys = senders
@@ -894,7 +894,7 @@ class FilterParser:
             #
             # regular 'from' or 'to' addresses
             if source in ('from', 'to'):
-                found_match = Util.findmatch([string.lower(match)], keys)
+                found_match = Util.findmatch([match.lower()], keys)
                 if found_match:
                     break
             # 'from-file' or 'to-file', including autocdb functionality
@@ -1036,54 +1036,27 @@ class FilterParser:
                     break
             # A match is found if the command exits with a zero exit
             # status.
-            if source == 'pipe-headers' and msg_headers:
-                cmd = popen2.Popen3(match, 1, bufsize=-1)
-                cmdout, cmdin, cmderr = cmd.fromchild, cmd.tochild, cmd.childerr
-                cmdin.write(msg_headers)
-                cmdin.flush()
-                cmdin.close()
-                err = cmderr.read().strip()
-                cmderr.close()
-                out = cmdout.read().strip()
-                cmdout.close()
-                r = cmd.wait()
-                if r == 0:
-                    found_match = 1
-                    break
+            # A match is found if the command exits with a zero status.
+            if source in ('pipe-headers', 'pipe'):
+                if source == 'pipe-headers' and msg_headers:
+                    pipe_data = msg_headers
+                elif source == 'pipe' and msg_body and msg_headers:
+                    pipe_data = msg_headers + '\n' + msg_body
                 else:
-                    # non-zero exit status
-                    if os.WIFEXITED(r):
-                        pass
-                    # raise an exception if the process exited due to
-                    # a signal.
-                    elif os.WIFSIGNALED(r):
-                        raise Error('command "%s" abnormal exit signal %s (%s)' \
-                              % (match, os.WTERMSIG(r), err or ''))
-            # A match is found if the command exits with a zero exit
-            # status.
-            if source == 'pipe' and msg_body and msg_headers:
-                cmd = popen2.Popen3(match, 1, bufsize=-1)
-                cmdout, cmdin, cmderr = cmd.fromchild, cmd.tochild, cmd.childerr
-                cmdin.write(msg_headers + '\n' + msg_body)
-                cmdin.flush()
-                cmdin.close()
-                err = cmderr.read().strip()
-                cmderr.close()
-                out = cmdout.read().strip()
-                cmdout.close()
-                r = cmd.wait()
-                if r == 0:
-                    found_match = 1
-                    break
-                else:
-                    # non-zero exit status
-                    if os.WIFEXITED(r):
-                        pass
-                    # raise an exception if the process exited due to
-                    # a signal.
-                    elif os.WIFSIGNALED(r):
-                        raise Error('command "%s" abnormal exit signal %s (%s)' \
-                              % (match, os.WTERMSIG(r), err or ''))
+                    pipe_data = None
+                if pipe_data is not None:
+                    if isinstance(pipe_data, str):
+                        pipe_data = pipe_data.encode('latin-1')
+                    cmd = subprocess.run(match, shell=isinstance(match, str),
+                                         input=pipe_data, stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE)
+                    if cmd.returncode == 0:
+                        found_match = 1
+                        break
+                    if cmd.returncode < 0:
+                        err = cmd.stderr.decode('utf-8', errors='replace').strip()
+                        raise Error('command "%s" abnormal exit signal %s (%s)' %
+                                    (match, -cmd.returncode, err))
             if source in ('body', 'headers'):
                 if source == 'body' and msg_body:
                     content = msg_body
@@ -1126,7 +1099,7 @@ class FilterParser:
             if source == 'size' and msg_size:
                 match_list = list(match)
                 operator = match_list[0] # first character should be < or >
-                bytes = string.join(match_list,'')[1:] # rest is the size
+                bytes = ''.join(match_list)[1:] # rest is the size
                 found_match = None
                 if operator == '<':
                     found_match = int(msg_size) < int(bytes)
