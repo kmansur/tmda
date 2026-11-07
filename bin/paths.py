@@ -42,4 +42,7 @@ sys.path.insert(0, prefix)
 # We also need the TMDA/pythonlib directory on the path to pick up any
 # overrides of standard modules and packages.  Note that these must go
 # at the very front of the path for this reason.
-sys.path.insert(0, os.path.join(prefix, 'TMDA', 'pythonlib'))
+# Python 3 provides a maintained email package in the standard library.
+# The bundled legacy email package is needed only by the Python 2 codebase.
+if sys.version_info[0] < 3:
+    sys.path.insert(0, os.path.join(prefix, 'TMDA', 'pythonlib'))
