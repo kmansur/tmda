@@ -136,7 +136,7 @@ class CookieTests(unittest.TestCase):
         headers = ['From: alice@example.com\r\n', 'Subject: hello\r\n']
         expected = base64.b64encode(
             hmac.new(KEY, ''.join(headers).encode('latin-1'), hashlib.sha1).digest()
-        ).decode('ascii')
+        ).decode('ascii').rstrip('=')
         self.assertEqual(self.cookie.make_fingerprint(headers), expected)
 
 
