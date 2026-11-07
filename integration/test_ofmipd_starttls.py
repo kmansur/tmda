@@ -124,5 +124,33 @@ class SMTPStartTLSTests(unittest.TestCase):
         self.assertEqual(self._command(b'QUIT'), b'221 Bye\r\n')
 
 
+    def test_authentication_and_delivery_over_starttls(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / 'auth'
+            path.write_text('alice:secret\n', encoding='ascii')
+            self.proxy['opts'].authfile = str(path)
+            self._start_tls()
+            self.assertIn(b'AUTH ', self._command(b'EHLO local.example'))
+            self.assertEqual(
+                self._command(b'AUTH PLAIN AGFsaWNlAHNlY3JldA=='),
+                b'235 AUTH successful\r\n')
+            self.assertEqual(
+                self._command(b'MAIL FROM:<alice@example.com>'),
+                b'250 Ok\r\n')
+            self.assertEqual(
+                self._command(b'RCPT TO:<bob@example.com>'),
+                b'250 Ok\r\n')
+            self.assertTrue(self._command(b'DATA').startswith(b'354 '))
+            self.client.sendall(b'Subject: TLS test\r\n\r\nEncrypted message\r\n.\r\n')
+            self.assertEqual(self._read(), b'250 Ok\r\n')
+            self.assertEqual(len(self.received), 1)
+            self.assertIn('Encrypted message', self.received[0][3])
+            self.assertEqual(self.received[0][4], 'alice')
+
+    def test_tls_configuration_minimum_version(self):
+        self.assertEqual(
+            self.proxy['TLS_CONTEXT'].minimum_version, ssl.TLSVersion.TLSv1_2)
+
+
 if __name__ == '__main__':
     unittest.main()
