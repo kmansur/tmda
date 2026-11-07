@@ -25,9 +25,9 @@
 import base64
 import hmac
 import imaplib
-import md5
+import hashlib
 import os
-import popen2
+import subprocess
 import poplib
 import socket
 import sys
@@ -289,7 +289,7 @@ class Auth(Util.Debugable):
                                         self.__b64_decode(password) )
 
     def authenticate_cram_md5(self, response, ticket, response_encoded = 1, \
-                              digestmod = md5):
+                              digestmod = hashlib.md5):
         """Authenticates a cram_md5 response based on a ticket.
            Expects a base-64 encoded "response" unless otherwise specified."""
         if not self.supports_cram_md5():
@@ -309,8 +309,10 @@ class Auth(Util.Debugable):
         password = self.__authdict.get(username.lower(), 0)
         if password == 0:
             return 0
-        newhexdigest = hmac.HMAC(password, ticket, digestmod).hexdigest()
-        return newhexdigest == hexdigest
+        newhexdigest = hmac.new(password.encode('latin-1') if isinstance(password, str) else password,
+                                ticket.encode('latin-1') if isinstance(ticket, str) else ticket,
+                                digestmod).hexdigest()
+        return newhexdigest == (hexdigest.decode('ascii') if isinstance(hexdigest, bytes) else hexdigest)
 
     def supports_cram_md5(self):
         """Check if Cram MD5 authentication is supported.
@@ -523,32 +525,21 @@ class Auth(Util.Debugable):
         return status
 
     def __pipecmd(self, command, *strings):
-        """Execs a command and pipes strings into stdin
-        Returns the errorcode"""
-        popen2._cleanup()
-        cmd = popen2.Popen3(command, 1, bufsize=-1)
-        cmdout, cmdin, cmderr = cmd.fromchild, cmd.tochild, cmd.childerr
-        if strings:
-            # Write to the tochild file object.
-            for s in strings:
-                cmdin.write(s)
-            cmdin.flush()
-            cmdin.close()
-        # Read from the childerr object; command will block until exit.
-        self.__lastcmderr = cmderr.read().strip()
-        cmderr.close()
-        # Read from the fromchild object.
-        self.__lastcmdout = cmdout.read().strip()
-        cmdout.close()
-        # Get exit status from the wait() member function.
-        return cmd.wait()
+        """Exec a command and pipe strings into stdin; return its exit code."""
+        data = b''.join(s.encode('latin-1') if isinstance(s, str) else s
+                        for s in strings)
+        cmd = subprocess.run(command, shell=isinstance(command, str),
+                             input=data, capture_output=True)
+        self.__lastcmderr = cmd.stderr.decode('utf-8', errors='replace').strip()
+        self.__lastcmdout = cmd.stdout.decode('utf-8', errors='replace').strip()
+        return cmd.returncode
 
     def __authfile2dict(self, authfile):
         """Iterate over a tmdauth authentication file, and return a
         dictionary containing username:password pairs.  Username is
         returned in lowercase."""
         authdict = {}
-        fp = file(authfile, 'r')
+        fp = open(authfile, 'r')
         for line in fp:
             line = line.strip()
             if line == '':
@@ -564,7 +555,7 @@ class Auth(Util.Debugable):
         containing IP1 -> IP2:port hashes."""
         ipauthmap = {}
         try:
-            fp = file(ipfile, 'r')
+            fp = open(ipfile, 'r')
             for line in fp:
                 line = line.strip()
                 if line == "":
@@ -586,8 +577,8 @@ class Auth(Util.Debugable):
 
     def __b64_encode(self, s):
         """base64 encoding without the trailing newline."""
-        return base64.encodestring(s)[:-1]
+        return base64.b64encode(s.encode('latin-1') if isinstance(s, str) else s).decode('ascii')
 
     def __b64_decode(self, s):
         """base64 decoding."""
-        return base64.decodestring(s)
+        return base64.b64decode(s).decode('latin-1')
