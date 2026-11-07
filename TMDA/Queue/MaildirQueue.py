@@ -157,7 +157,7 @@ class MaildirQueue(Queue):
                            + '1*.[0-9]*.*'))
         for m in msgs:
             if mailid in m:
-                msg = Util.msg_from_file(file(m, 'r'),fullParse=fullParse)
+                msg = Util.msg_from_file(open(m, 'r'),fullParse=fullParse)
                 return msg
         else:
             # couldn't find message, defer and retry until we find it
@@ -249,7 +249,7 @@ class MaildirQueue(Queue):
             except OSError:
                 # Not running as root, can't chown file.
                 pass
-            fp.write(message)
+            fp.write(message.encode('utf-8') if isinstance(message, str) else message)
             fp.flush()
             os.fsync(fp.fileno())
             fp.close()
