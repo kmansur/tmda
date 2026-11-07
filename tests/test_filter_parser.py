@@ -55,7 +55,7 @@ class FilterParserTests(unittest.TestCase):
     def test_pipe_rule_matching(self):
         parser = self.module.FilterParser()
         parser.filterlist = [
-            ('pipe-headers', {}, 'exit 0', {'ok': None}, 1),
+            ('pipe-headers', {}, 'exit 0', {'incoming': ('ok', None)}, 1),
         ]
         actions, line = parser.firstmatch('bob@example.com', msg_headers='X-Test: yes\r\n')
         self.assertTrue(actions)
@@ -63,7 +63,7 @@ class FilterParserTests(unittest.TestCase):
     def test_pipe_rule_nonmatching(self):
         parser = self.module.FilterParser()
         parser.filterlist = [
-            ('pipe-headers', {}, 'exit 1', {'ok': None}, 1),
+            ('pipe-headers', {}, 'exit 1', {'incoming': ('ok', None)}, 1),
         ]
         actions, line = parser.firstmatch('bob@example.com', msg_headers='X-Test: yes\r\n')
         self.assertFalse(actions)
