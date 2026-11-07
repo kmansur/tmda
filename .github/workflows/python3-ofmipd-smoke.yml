@@ -1,0 +1,24 @@
+name: Python 3 SMTP proxy import smoke test
+
+on:
+  push:
+    branches:
+      - feature/python3-migration
+  pull_request:
+
+jobs:
+  smtp-proxy-smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.13', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install legacy asyncore compatibility modules
+        run: python -m pip install pyasyncore==1.0.5 pyasynchat
+      - name: Check SMTP proxy command-line import
+        run: python bin/tmda-ofmipd --help
