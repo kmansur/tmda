@@ -34,13 +34,17 @@ Compatibility work completed
 * Key generation, authentication encoding and CLI smoke tests.
 * Python 3 standard-library email instead of the bundled Python 2
   email package on the entry-point path.
-* Temporary pyasyncore and pyasynchat dependency for ofmipd imports.
+* Temporary pyasyncore and pyasynchat dependency for the SMTP event loop.
+* TLS and STARTTLS use ssl.SSLContext rather than the old tlslite
+  dependency, with TLS 1.2 as the minimum accepted version.
 * Optional legacycrypt fallback for encrypted Unix password files.
 
 Compatibility work still required
 ---------------------------------
 
-* End-to-end SMTP transactions, SASL, TLS and proxy transport.
+* Production SMTP interoperability, TLS verification policy, STARTTLS
+  failure recovery, and proxy transport. Local loopback tests cover
+  basic plaintext SMTP, authentication, STARTTLS and implicit TLS.
 * Real Maildir and original pending-queue delivery and retrieval.
 * Message serialization, MIME and non-ASCII header/body handling.
 * FD3/checkpassword process execution and failure handling.
@@ -79,3 +83,17 @@ The checks do not cover STARTTLS, implicit TLS, real password stores,
 FD3/checkpassword, message injection, external MTA delivery,
 concurrent connections, or sustained SMTP traffic.
 
+
+TLS integration checks
+----------------------
+
+The integration/test_ofmipd_starttls.py and
+integration/test_ofmipd_implicit_tls.py suites generate temporary
+self-signed certificates with OpenSSL and negotiate TLS entirely on
+127.0.0.1. They verify TLS 1.2 minimum configuration, mandatory
+STARTTLS before AUTH in --tls on mode, and post-handshake SMTP
+commands. STARTTLS authentication and DATA are delivered only to an
+in-memory callback. No real MTA or external server is contacted.
+
+The core SMTP event loop still requires pyasyncore/pyasynchat. Do not
+interpret passing isolated tests as production TLS certification.
