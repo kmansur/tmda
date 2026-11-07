@@ -40,7 +40,7 @@ def confirmationmac(time, pid, keyword=None):
     chmac.update(pid)
     if keyword:
         chmac.update(keyword)
-    return binascii.hexlify(chmac.digest()[:Defaults.HMAC_BYTES])
+    return binascii.hexlify(chmac.digest()[:Defaults.HMAC_BYTES]).decode('ascii')
 
 
 def make_confirm_cookie(time, pid, keyword=None):
@@ -68,7 +68,7 @@ def make_confirm_address(address, time, pid, keyword=None):
 def datemac(time):
     """Expects time as a string, and returns an HMAC in hex."""
     datemac = HMAC.new(Defaults.CRYPT_KEY,time).digest()[:Defaults.HMAC_BYTES]
-    return binascii.hexlify(datemac)
+    return binascii.hexlify(datemac).decode('ascii')
 
 
 def make_dated_cookie(time, timeout = None):
@@ -98,7 +98,7 @@ def make_sender_cookie(address):
     address = address.lower()
     sender_cookie = HMAC.new(Defaults.CRYPT_KEY,
                              address).digest()[:Defaults.HMAC_BYTES]
-    return binascii.hexlify(sender_cookie)
+    return binascii.hexlify(sender_cookie).decode('ascii')
 
 
 def make_sender_address(address, sender):
@@ -116,7 +116,7 @@ def make_sender_address(address, sender):
 def make_keywordmac(keyword):
     """Expects a keyword as a string, returns an HMAC in hex."""
     keywordmac = HMAC.new(Defaults.CRYPT_KEY, keyword).digest()[:Defaults.HMAC_BYTES]
-    return binascii.hexlify(keywordmac)
+    return binascii.hexlify(keywordmac).decode('ascii')
 
 
 def make_keyword_cookie(keyword):
@@ -148,4 +148,4 @@ def make_fingerprint(hdrlist):
     fp = HMAC.hmac(Defaults.CRYPT_KEY)
     for hdr in hdrlist:
         fp.update(hdr)
-    return binascii.b2a_base64(fp.digest())[:-2]
+    return binascii.b2a_base64(fp.digest(), newline=False).decode('ascii')
