@@ -1,0 +1,62 @@
+Python 3 Migration Notes
+========================
+
+This document describes the in-progress Python 3 migration of TMDA
+1.1.12. The legacy code, historical copyright notices, license and
+existing release identifier are preserved.
+
+Reference implementations
+-------------------------
+
+Two independent repositories were reviewed for migration ideas:
+
+* Jonathan Kamens: https://github.com/jikamens/tmda
+* Cedric Dufour: https://github.com/cedric-dufour/tmda
+
+The Kamens branch has useful subprocess substitutions but still
+imports asyncore, asynchat, md5 and crypt in major components. It
+must not be treated as proof of compatibility with Python 3.13+.
+
+The Dufour tmda-1.3.x branch places TMDA in a tmda/ subtree and
+includes an extended test suite, an explicit msg_as_bytes helper
+and SMTP session byte decoding. It also retains asyncore, asynchat
+and crypt, so it is not a direct drop-in replacement on a stock
+Python 3.13+ installation.
+
+Compatibility work completed
+----------------------------
+
+* HMAC-SHA1 API and original cryptographic cookie representations.
+* Python 3-safe text and binary serialization of selected data.
+* Removed popen2 functionality in selected utility, parser and
+  authentication paths.
+* Legacy filter parser string methods and indentation issues.
+* Key generation, authentication encoding and CLI smoke tests.
+* Python 3 standard-library email instead of the bundled Python 2
+  email package on the entry-point path.
+* Temporary pyasyncore and pyasynchat dependency for ofmipd imports.
+* Optional legacycrypt fallback for encrypted Unix password files.
+
+Compatibility work still required
+---------------------------------
+
+* End-to-end SMTP transactions, SASL, TLS and proxy transport.
+* Real Maildir and original pending-queue delivery and retrieval.
+* Message serialization, MIME and non-ASCII header/body handling.
+* FD3/checkpassword process execution and failure handling.
+* Compatibility of old file-based password hashes and security policy.
+* Integration with supported MTAs and virtual domains.
+* Full coverage of bundled helpers, contrib scripts and legacy
+  configuration paths.
+
+Existing smoke tests verify command-line startup and compilation,
+but do not establish that the SMTP proxy is safe for production.
+
+Migration policy
+----------------
+
+Preserve original behavior and external formats unless a separate,
+reviewed compatibility or security change is required. Prefer
+isolated regression tests and staged integration testing over a
+bulk source rewrite. Keep source comments and documentation in
+English, consistent with the original project.
