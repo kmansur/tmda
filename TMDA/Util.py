@@ -29,7 +29,7 @@ import email.utils
 import fileinput
 import fnmatch
 import os
-import popen2
+import subprocess
 import re
 import socket
 import stat
@@ -334,60 +334,33 @@ def file_to_list(file):
 
 
 def pipecmd(command, *strings):
-    """Run a child process, returning opened pipes for communication.
+    """Run a child process and send optional data to its standard input.
 
-    command is the program to execute as a sub-process.
-
-    *strings are optional pieces of data to write to command.
-
-    return_status will just return the exit status of the command..
-
-    Based on code from getmail
-    <URL:http://www.qcc.sk.ca/~charlesc/software/getmail-2.0/>
-    Copyright (C) 2001 Charles Cazabon, and licensed under the GNU
-    General Public License version 2.
+    Keep the original interface and raise IOError for failed deliveries.
     """
     try:
-        popen2._cleanup()
-        cmd = popen2.Popen3(command, 1, bufsize=-1)
-        cmdout, cmdin, cmderr = cmd.fromchild, cmd.tochild, cmd.childerr
+        data = None
         if strings:
-            # Write to the tochild file object.
-            for s in strings:
-                cmdin.write(s)
-            cmdin.flush()
-            cmdin.close()
-        # Read from the childerr object; command will block until exit.
-        err = cmderr.read().strip()
-        cmderr.close()
-        # Read from the fromchild object.
-        out = cmdout.read().strip()
-        cmdout.close()
-        # Get exit status from the wait() member function.
-        r = cmd.wait()
-        # If exit status is non-zero, raise an exception with data
-        # from childerr.
-        if r:
-            if os.WIFEXITED(r):
-                exitcode = 'exited %i' % os.WEXITSTATUS(r)
-                exitsignal = ''
-            elif os.WIFSIGNALED(r):
-                exitcode = 'abnormal exit'
-                exitsignal = 'signal %i' % os.WTERMSIG(r)
-            else:
-                # Stopped, etc.
-                exitcode = 'no exit?'
-                exitsignal = ''
-            raise IOError('command "%s" %s %s (%s)' \
-                  % (command, exitcode, exitsignal, err or ''))
-        elif err:
-            # command wrote something to stderr.
+            data = b''.join(
+                s.encode('latin-1') if isinstance(s, str) else s
+                for s in strings
+            )
+        cmd = subprocess.Popen(command, shell=isinstance(command, str),
+                               stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
+        out, err = cmd.communicate(data)
+        err = err.decode('utf-8', errors='replace').strip()
+        out = out.decode('utf-8', errors='replace').strip()
+        if cmd.returncode:
+            raise IOError('command "%s" exited %i (%s)' %
+                          (command, cmd.returncode, err))
+        if err:
             print(err)
         if out:
-            # command wrote something to stdout.
             print(out)
     except Exception as txt:
-        raise IOError('failure delivering message to command "%s" (%s)' % (command, txt))
+        raise IOError('failure delivering message to command "%s" (%s)' %
+                      (command, txt))
 
 
 def writefile(contents, fullpathname):
@@ -770,18 +743,16 @@ def pickleit(object, file, proto=2):
     """
     tempfile.tempdir = os.path.dirname(file)
     tmpname = tempfile.mkstemp()[1]
-    fp = open(tmpname, 'w')
-    pickle.dump(object, fp, proto)
-    fp.close()
+    with open(tmpname, 'wb') as fp:
+        pickle.dump(object, fp, proto)
     os.rename(tmpname, file)
     return
 
 
 def unpickle(file):
     """Retrieve and return object from file."""
-    fp = open(file, 'r')
-    object = pickle.load(fp)
-    fp.close()
+    with open(file, 'rb') as fp:
+        object = pickle.load(fp)
     return object
 
 
