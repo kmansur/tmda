@@ -622,7 +622,7 @@ class FilterParser:
             raise Error('"%s": unrecognized filter rule' % rule_line.split()[0])
         else:
             source = mo.group(1)
-            match_line = string.lstrip(rule_line[mo.end():])
+            match_line = rule_line[mo.end():].lstrip()
             args, match_line = self.__parseargs(self.arguments[source.lower()],
                                                 match_line)
             mo = self.matches.match(match_line)
@@ -631,7 +631,7 @@ class FilterParser:
                 raise Error('"%s": missing <match> field' % source)
             else:
                 match = mo.group(2) or mo.group(3)
-                action_line = string.lstrip(match_line[mo.end():])
+                action_line = match_line[mo.end():].lstrip()
                 actions = self.__buildactions(action_line, source)
                 rule = (source, args, match, actions, self.__file().rule_lineno)
         return rule
@@ -644,7 +644,7 @@ class FilterParser:
         """
         actions = None
         if action_line[:len('tag ')] == 'tag ':
-            action_line = string.lstrip(action_line[len('tag '):])
+            action_line = action_line[len('tag '):].lstrip()
             while len(action_line) > 0:
                 mo = self.tag_action.match(action_line)
                 if not mo:
@@ -652,7 +652,7 @@ class FilterParser:
                     errstr = '"%s": ' % source
                     errstr += 'malformed header field or missing <action>'
                     raise Error(errstr)
-                header = string.lower(mo.group(1))
+                header = mo.group(1).lower()
                 action = (mo.group(2) or "") + (mo.group(4) or mo.group(5))
                 if action:
                     if not actions:
@@ -664,7 +664,7 @@ class FilterParser:
                 else:
                     # don't know how we could get here
                     raise Error('unexpected error')
-                action_line = string.lstrip(action_line[mo.end()+1:])
+                action_line = action_line[mo.end()+1:].lstrip()
         else:
             mo = self.in_action.match(action_line)
             if mo:
