@@ -148,4 +148,4 @@ def make_fingerprint(hdrlist):
     fp = HMAC.hmac(Defaults.CRYPT_KEY)
     for hdr in hdrlist:
         fp.update(hdr)
-    return binascii.b2a_base64(fp.digest(), newline=False).decode('ascii')
+    return binascii.b2a_base64(fp.digest())[:-2].decode('ascii')
