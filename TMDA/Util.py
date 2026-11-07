@@ -119,7 +119,7 @@ def getfilemode(path):
     permissions on path."""
     statinfo = os.stat(path)
     permbits = stat.S_IMODE(statinfo[stat.ST_MODE])
-    mode = int(oct(permbits))
+    mode = int(format(permbits, 'o'))
     return mode
 
 
