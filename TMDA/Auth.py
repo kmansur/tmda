@@ -357,7 +357,16 @@ class Auth(Util.Debugable):
         """Checks authdict for the password.
         Return 1 for a match, 0 otherwise."""
         self.debug( "Trying file authentication with '%s'" % self.__authfile )
-        import crypt
+        try:
+            import crypt
+        except ImportError:
+            try:
+                import legacycrypt as crypt
+            except ImportError as err:
+                raise Errors.AuthError(
+                    'Unix password verification is unavailable.',
+                    'Install legacycrypt to use encrypted password files.'
+                ) from err
         self.__update_authdict()
         pw = self.__authdict.get(username.lower(), 0)
         if pw == 0:
