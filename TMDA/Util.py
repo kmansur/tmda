@@ -430,9 +430,9 @@ def pager(str):
                 pager = path
                 break
     try:
-	os.popen(pager, 'w').write(str)
+        os.popen(pager, 'w').write(str)
     except IOError:
-	return
+        return
 
 
 def normalize_sender(sender):
@@ -514,11 +514,11 @@ def msg_from_file(fp, fullParse=False):
     problems trying to parse spam with broken MIME bodies."""
     from email.message import Message
     if fullParse:
-	from email.parser import Parser
-	msg = Parser(Message).parse(fp)
+        from email.parser import Parser
+        msg = Parser(Message).parse(fp)
     else:
-	from email.parser import HeaderParser
-	msg = HeaderParser(Message).parse(fp)
+        from email.parser import HeaderParser
+        msg = HeaderParser(Message).parse(fp)
     #msg.header_parsed = True
     return msg
 
