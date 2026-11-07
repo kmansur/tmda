@@ -15,8 +15,9 @@ Version 1.1.12 and its "Macallan" codename have not been changed.
     python -m pip install pyasyncore==1.0.5 pyasynchat==1.0.5
 
   These packages provide the removed standard-library asyncore and
-  asynchat interfaces.  This is a transitional measure, not a
-  completed migration of the SMTP event loop.
+  asynchat interfaces. TLS and STARTTLS now use Python's standard
+  ssl module, with TLS 1.2 as the minimum protocol version. The
+  event loop itself has not yet been replaced.
 
 * File authentication using encrypted Unix password hashes requires
   the optional legacycrypt package on Python 3.13 and later:
@@ -33,8 +34,10 @@ Version 1.1.12 and its "Macallan" codename have not been changed.
   unchanged.  Do not rotate keys or alter the tagged-address format
   as part of this compatibility migration.
 
-* A successful CLI import or compilation check does not certify SMTP
-  protocol handling, TLS, SASL authentication, or mail delivery.
+* Loopback integration tests exercise SMTP AUTH, message capture,
+  STARTTLS and implicit TLS using temporary self-signed certificates.
+  They do not certify compatibility with production clients, MTAs,
+  certificate policies, or real message delivery.
   Do not deploy this branch on a production mail server.
 
 ======================================================================
