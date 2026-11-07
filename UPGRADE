@@ -3,6 +3,42 @@ this file.
 
 ======================================================================
 
+Python 3 migration development notes (not a production release)
+======================================================================
+
+This development branch is being tested with Python 3.13 and 3.14.
+Version 1.1.12 and its "Macallan" codename have not been changed.
+
+* The SMTP proxy tmda-ofmipd currently requires the pyasyncore and
+  pyasynchat compatibility packages on Python 3.12 and later:
+
+    python -m pip install pyasyncore==1.0.5 pyasynchat==1.0.5
+
+  These packages provide the removed standard-library asyncore and
+  asynchat interfaces.  This is a transitional measure, not a
+  completed migration of the SMTP event loop.
+
+* File authentication using encrypted Unix password hashes requires
+  the optional legacycrypt package on Python 3.13 and later:
+
+    python -m pip install legacycrypt==0.3
+
+  When neither crypt nor legacycrypt is available, encrypted file
+  authentication fails closed rather than silently skipping the check.
+
+* Python 3 uses its own email package.  The historical copy under
+  TMDA/pythonlib/email remains in the repository for reference.
+
+* Existing HMAC-SHA1 cookie formats and version identifiers are kept
+  unchanged.  Do not rotate keys or alter the tagged-address format
+  as part of this compatibility migration.
+
+* A successful CLI import or compilation check does not certify SMTP
+  protocol handling, TLS, SASL authentication, or mail delivery.
+  Do not deploy this branch on a production mail server.
+
+======================================================================
+
 If you are upgrading from a release of TMDA < 1.1.11:
 
 * the 'htdocs' directory has been removed. 
