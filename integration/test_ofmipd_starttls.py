@@ -82,6 +82,10 @@ class SMTPStartTLSTests(unittest.TestCase):
             if part:
                 output += part
                 if output.endswith(b'\r\n'):
+                    lines = output.split(b'\r\n')
+                    if lines[0].startswith(b'250-') and not any(
+                            line.startswith(b'250 ') for line in lines):
+                        continue
                     return output
         return output
 
