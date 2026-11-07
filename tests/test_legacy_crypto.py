@@ -123,6 +123,12 @@ class CookieTests(unittest.TestCase):
     def test_keyword_cookie(self):
         self.assertEqual(
             self.cookie.make_keyword_cookie('news-letter'),
+            'news-letter.' + legacy_hex('news-letter'),
+        )
+
+    def test_keyword_sanitization(self):
+        self.assertEqual(
+            self.cookie.make_keyword_cookie('news letter'),
             'news?letter.' + legacy_hex('news?letter'),
         )
 
