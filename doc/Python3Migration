@@ -60,3 +60,22 @@ reviewed compatibility or security change is required. Prefer
 isolated regression tests and staged integration testing over a
 bulk source rewrite. Keep source comments and documentation in
 English, consistent with the original project.
+
+
+SMTP loopback integration checks
+-------------------------------
+
+The integration/test_ofmipd_loopback.py suite starts the original
+SMTPServer bound to 127.0.0.1 on an ephemeral port, using a callback
+that captures messages in memory instead of invoking a local or remote
+MTA. The GitHub Actions runner tests Python 3.13 and Python 3.14 with
+temporary pyasyncore and pyasynchat compatibility packages.
+
+The test suite covers EHLO, NOOP, QUIT, rejection before AUTH,
+AUTH LOGIN failure and success, AUTH PLAIN success, MAIL FROM, RCPT TO,
+DATA, 8-bit message content and SMTP dot transparency.
+
+The checks do not cover STARTTLS, implicit TLS, real password stores,
+FD3/checkpassword, message injection, external MTA delivery,
+concurrent connections, or sustained SMTP traffic.
+
