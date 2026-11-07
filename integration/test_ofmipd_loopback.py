@@ -106,17 +106,17 @@ class SMTPLoopbackTests(unittest.TestCase):
     def test_authenticated_smtp_data_without_delivery(self):
         with tempfile.TemporaryDirectory() as directory:
             path = pathlib.Path(directory) / 'auth'
-            path.write_text('alice:secret\\n', encoding='ascii')
+            path.write_text('alice:secret\n', encoding='ascii')
             self.proxy['opts'].authfile = str(path)
             self.assertIn(b'AUTH', self._command(b'EHLO local.example'))
-            self.assertEqual(self._command(b'AUTH LOGIN'), b'334 VXNlcm5hbWU6\\r\\n')
-            self.assertEqual(self._command(b'YWxpY2U='), b'334 UGFzc3dvcmQ6\\r\\n')
-            self.assertEqual(self._command(b'c2VjcmV0'), b'235 AUTH successful\\r\\n')
-            self.assertEqual(self._command(b'MAIL FROM:<alice@example.com>'), b'250 Ok\\r\\n')
-            self.assertEqual(self._command(b'RCPT TO:<bob@example.com>'), b'250 Ok\\r\\n')
+            self.assertEqual(self._command(b'AUTH LOGIN'), b'334 VXNlcm5hbWU6\r\n')
+            self.assertEqual(self._command(b'YWxpY2U='), b'334 UGFzc3dvcmQ6\r\n')
+            self.assertEqual(self._command(b'c2VjcmV0'), b'235 AUTH successful\r\n')
+            self.assertEqual(self._command(b'MAIL FROM:<alice@example.com>'), b'250 Ok\r\n')
+            self.assertEqual(self._command(b'RCPT TO:<bob@example.com>'), b'250 Ok\r\n')
             self.assertTrue(self._command(b'DATA').startswith(b'354 '))
-            self.client.sendall(b'Subject: Test\\r\\n\\r\\nHello\\r\\n.\\r\\n')
-            self.assertEqual(self._read(), b'250 Ok\\r\\n')
+            self.client.sendall(b'Subject: Test\r\n\r\nHello\r\n.\r\n')
+            self.assertEqual(self._read(), b'250 Ok\r\n')
             self.assertEqual(len(self.received), 1)
             peer, sender, recipients, message, username = self.received[0]
             self.assertEqual(sender, 'alice@example.com')
