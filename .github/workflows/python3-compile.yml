@@ -1,0 +1,22 @@
+name: Python 3 source compatibility
+
+on:
+  push:
+    branches:
+      - feature/python3-migration
+  pull_request:
+
+jobs:
+  source-compile:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.13', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Compile Python package and entry points
+        run: python -m compileall -q TMDA bin
