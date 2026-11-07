@@ -18,6 +18,8 @@ import hmac
 import os
 import tempfile
 import unittest
+import types
+from unittest.mock import patch
 
 from TMDA.Auth import Auth
 
@@ -42,6 +44,21 @@ class AuthenticationTests(unittest.TestCase):
                 self.auth._Auth__authfile2dict(path),
                 {'alice@example.com': 'secret'},
             )
+
+    def test_legacycrypt_password_verification(self):
+        auth = self.auth
+        auth.debug = lambda message: None
+        auth._Auth__authfile = '/tmp/tmdauth-test'
+        auth._Auth__authdict = {'alice': '$6$known$hash'}
+        auth._Auth__authfile_allows_cleartext = False
+        auth._Auth__update_authdict = lambda: None
+        backend = types.ModuleType('legacycrypt')
+        backend.crypt = lambda password, salt: '$6$known$hash' if (
+            password == 'correct' and salt == '$6'
+        ) else '*'
+        with patch.dict('sys.modules', {'crypt': None, 'legacycrypt': backend}):
+            self.assertTrue(auth.authenticate_plain_file('alice', 'correct'))
+            self.assertFalse(auth.authenticate_plain_file('alice', 'incorrect'))
 
     def test_cram_md5_legacy_digest(self):
         self.auth.supports_cram_md5 = lambda: True
