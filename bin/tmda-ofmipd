@@ -597,6 +597,7 @@ class SecureSMTPSession(SMTPSession):
     def __init__(self, conn, process_msg_func):
         self._tls_context = TLS_CONTEXT
         self._tls_handshake_pending = False
+        self._tls_want_write = False
         self._tls_active = False
         SMTPSession.__init__(self, conn, process_msg_func)
 
@@ -606,17 +607,23 @@ class SecureSMTPSession(SMTPSession):
         self.socket = self._tls_context.wrap_socket(
             self.socket, server_side=True, do_handshake_on_connect=False)
         self._tls_handshake_pending = True
+        self._tls_want_write = False
 
     def _continue_tls_handshake(self):
         try:
             self.socket.do_handshake()
-        except (ssl.SSLWantReadError, ssl.SSLWantWriteError):
+        except ssl.SSLWantReadError:
+            self._tls_want_write = False
+            return
+        except ssl.SSLWantWriteError:
+            self._tls_want_write = True
             return
         except (ssl.SSLError, OSError):
             self.close()
             return
 
         self._tls_handshake_pending = False
+        self._tls_want_write = False
         self._tls_active = True
         # SMTP state and authentication must be reset after STARTTLS.
         self.init_dynamic_state()
@@ -628,7 +635,7 @@ class SecureSMTPSession(SMTPSession):
         return True if self._tls_handshake_pending else SMTPSession.readable(self)
 
     def writable(self):
-        return True if self._tls_handshake_pending else SMTPSession.writable(self)
+        return self._tls_want_write if self._tls_handshake_pending else SMTPSession.writable(self)
 
     def handle_read(self):
         if self._tls_handshake_pending:
