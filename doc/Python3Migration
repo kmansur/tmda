@@ -97,3 +97,20 @@ in-memory callback. No real MTA or external server is contacted.
 
 The core SMTP event loop still requires pyasyncore/pyasynchat. Do not
 interpret passing isolated tests as production TLS certification.
+
+Pending queues and local delivery
+---------------------------------
+
+The integration/test_pending_queues.py suite uses private temporary
+directories and mock configuration data. It exercises the legacy
+OriginalQueue and MaildirQueue formats, including insertion, lookup,
+readback, deletion, exact message ID matching and raw eight-bit data.
+
+The integration/test_local_delivery.py suite writes local Maildir,
+mbox and MMDF fixtures without invoking sendmail or accessing a
+production mail server. Binary file handling was updated for Python 3.
+
+These tests do not yet establish production delivery behavior under
+concurrent access, interrupted writes, full filesystems, NFS, real
+user/group ownership, or varied MIME encodings. Maildir queue cleanup
+and failure recovery still require additional coverage.
