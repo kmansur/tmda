@@ -183,3 +183,31 @@ SMTP transport and TLS loopback regressions still run on Python
 Production use remains prohibited until stress testing, protocol
 fuzzing, TLS handshake failure handling, socket resource limits,
 and integration with actual MTAs are fully validated.
+
+Entry-point and development install audit
+-----------------------------------------
+
+The original tmda-pending and tmda-rfilter scripts contained
+mixed tab/space indentation that prevented Python 3 startup.
+Their indentation was normalized without changing program logic.
+All nine extensionless command-line programs now receive explicit
+compilation checks, and isolated CLI version checks cover the
+programs that support the -V option.
+
+The incoming tmda-rfilter now reads input from stdin.buffer into a
+BytesIO stream and passes it through the reversible eight-bit
+message parser. Its removed string module calls were replaced with
+ordinary string methods.
+
+The new integration/test_tagged_address_cli.py suite generates
+and validates keyword and dated tagged addresses through actual
+CLI processes using private test configuration and keys.
+
+A minimal pyproject.toml enables a development package installation
+into an isolated virtual environment; doc/Python3Install describes
+the procedure. GitHub Actions checks the installed commands from
+outside the checkout with Python 3.13 and Python 3.14.
+
+The incoming filter has not yet been tested end-to-end against
+a real Postfix/qmail recipient, and the complete pending queue
+administration CLI still needs functional integration coverage.
