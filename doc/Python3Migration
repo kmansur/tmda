@@ -114,3 +114,26 @@ These tests do not yet establish production delivery behavior under
 concurrent access, interrupted writes, full filesystems, NFS, real
 user/group ownership, or varied MIME encodings. Maildir queue cleanup
 and failure recovery still require additional coverage.
+
+MIME and isolated tmda-inject tests
+-----------------------------------
+
+The integration/test_mime_compatibility.py suite verifies parsing of
+binary message streams, original eight-bit body octets and multipart
+attachment integrity. TMDA.Util.msg_from_file maps input bytes to
+latin-1 text before invoking the historical message parser; the
+mapping is reversible when the legacy output is encoded to bytes.
+
+The integration/test_tmda_inject.py suite launches the real tmda-inject
+entry point with a private TMDA configuration and a local executable
+which only captures standard input. No external SMTP connection or
+production sendmail daemon is used. Its multipart attachment is
+checked after message rewriting and local capture.
+
+Scripts without a .py extension now receive explicit py_compile checks
+for tmda-inject, tmda-ofmipd and tmda-keygen. Further executable
+entry points still require dedicated runtime and syntax coverage.
+
+These tests do not yet cover internationalized RFC 6532 headers,
+malformed MIME, message size limits, multiple outgoing recipients,
+real MTA delivery, or all mail transport configurations.
