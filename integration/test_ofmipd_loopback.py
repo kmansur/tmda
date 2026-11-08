@@ -12,7 +12,7 @@
 
 """Exercise the historical SMTP proxy on an isolated loopback socket."""
 
-import asyncore
+from TMDA import SMTPEventLoop as asyncore
 import contextlib
 import io
 import os
