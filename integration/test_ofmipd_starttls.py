@@ -12,7 +12,7 @@
 
 """Exercise STARTTLS with an isolated local SMTP server and test certificate."""
 
-import asyncore
+from TMDA import SMTPEventLoop as asyncore
 import contextlib
 import io
 import pathlib
