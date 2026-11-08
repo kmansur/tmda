@@ -478,22 +478,21 @@ def confirm_append_address(xp, rp):
 
 
 def msg_from_file(fp, fullParse=False):
-    """Read a file and parse its contents into a Message object model.
-    Replacement for email.message_from_file().
-    
-    We use the HeaderParser subclass instead of Parser to avoid trying
-    to parse the message body, instead setting the payload to the raw
-    body as a string.  This is faster, and also helps us avoid
-    problems trying to parse spam with broken MIME bodies."""
+    """Read a message, preserving the original eight-bit message octets.
+
+    HeaderParser avoids interpreting MIME bodies unless fullParse is set.
+    Binary streams are decoded with latin-1 so the historical text API
+    can represent every original byte without replacement.
+    """
     from email.message import Message
+    from email.parser import HeaderParser, Parser
+
+    content = fp.read()
+    if isinstance(content, bytes):
+        content = content.decode('latin-1')
     if fullParse:
-        from email.parser import Parser
-        msg = Parser(Message).parse(fp)
-    else:
-        from email.parser import HeaderParser
-        msg = HeaderParser(Message).parse(fp)
-    #msg.header_parsed = True
-    return msg
+        return Parser(Message).parsestr(content)
+    return HeaderParser(Message).parsestr(content)
 
 
 def msg_as_string(msg, maxheaderlen=False, mangle_from_=False, unixfrom=False):
