@@ -31,6 +31,7 @@ class dispatcher:
     def __init__(self, sock=None):
         self.socket = sock
         self._closed = False
+        self._listening = False
         if sock is not None:
             sock.setblocking(False)
             socket_map[id(self)] = self
@@ -48,6 +49,7 @@ class dispatcher:
 
     def listen(self, backlog):
         self.socket.listen(backlog)
+        self._listening = True
 
     def accept(self):
         try:
@@ -85,8 +87,7 @@ class dispatcher:
             self.socket.close()
 
     def _dispatch_read(self):
-        if self.socket.type & socket.SOCK_STREAM and self.socket.getsockopt(
-                socket.SOL_SOCKET, socket.SO_ACCEPTCONN):
+        if self._listening:
             self.handle_accept()
         else:
             self.handle_read()
