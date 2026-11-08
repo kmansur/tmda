@@ -111,7 +111,8 @@ class MaildirQueue(Queue):
                     break
             if Defaults.PENDING_DELETE_APPEND:
                 try:
-                    msgobj = Util.msg_from_file(open(fpath, 'r'))
+                    with open(fpath, 'r', encoding='latin-1') as fp:
+                        msgobj = Util.msg_from_file(fp)
                 except IOError:
                     # in case of concurrent cleanups
                     pass
@@ -150,48 +151,36 @@ class MaildirQueue(Queue):
         del msg['X-TMDA-Recipient']
 
 
+    def _messages(self):
+        """Return pending Maildir messages in the new and cur directories."""
+        return (glob(os.path.join(Defaults.PENDING_DIR, 'new', '1*.[0-9]*.*')) +
+                glob(os.path.join(Defaults.PENDING_DIR, 'cur', '1*.[0-9]*.*')))
+
+    def _matching_messages(self, mailid):
+        """Match the complete mail identifier, not an arbitrary substring."""
+        prefix = mailid + '.'
+        return [path for path in self._messages()
+                if os.path.basename(path).startswith(prefix)]
+
     def fetch_message(self, mailid, fullParse=False):
-        msgs = (glob(os.path.join(Defaults.PENDING_DIR, 'new/') 
-                     + '1*.[0-9]*.*')) + \
-                     (glob(os.path.join(Defaults.PENDING_DIR, 'cur/') 
-                           + '1*.[0-9]*.*'))
-        for m in msgs:
-            if mailid in m:
-                msg = Util.msg_from_file(open(m, 'r'),fullParse=fullParse)
-                return msg
-        else:
-            # couldn't find message, defer and retry until we find it
-            raise IOError("couldn't locate %s, will retry" % m)
+        for path in self._matching_messages(mailid):
+            with open(path, 'r', encoding='latin-1') as fp:
+                return Util.msg_from_file(fp, fullParse=fullParse)
+        raise IOError("couldn't locate %s, will retry" % mailid)
 
 
     def delete_message(self, mailid):
-        msgs = (glob(os.path.join(Defaults.PENDING_DIR, 'new/') 
-                     + '1*.[0-9]*.*')) + \
-                     (glob(os.path.join(Defaults.PENDING_DIR, 'cur/') 
-                           + '1*.[0-9]*.*'))
-        for m in msgs:
-            if mailid in m:
-                os.unlink(m)
+        for path in self._matching_messages(mailid):
+            os.unlink(path)
 
 
     def find_message(self, mailid):
-        cwd = os.getcwd()
-        os.chdir(Defaults.PENDING_DIR)
-        msgs = glob('new/1*.[0-9]*.*') + glob('cur/1*.[0-9]*.*')
-
-        for i in range(5):
-            for m in msgs:
-                if mailid in m:
-                    os.chdir(cwd)
-                    return True
-            else:
-                # retry 5 times in case a MUA moved/renamed the
-                # message to cur/ in a non-atomic way.
+        for attempt in range(5):
+            if self._matching_messages(mailid):
+                return True
+            # Retry in case a mail client is moving new/ to cur/.
+            if attempt < 4:
                 time.sleep(0.1)
-                msgs = glob('new/1*.[0-9]*.*') + glob('cur/1*.[0-9]*.*')
-                continue
-        # give up; message is not there
-        os.chdir(cwd)
         return False
 
 
