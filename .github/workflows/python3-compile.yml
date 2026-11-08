@@ -21,4 +21,4 @@ jobs:
       - name: Compile Python modules
         run: python -m compileall -q TMDA bin
       - name: Compile extensionless entry points
-        run: python -m py_compile bin/tmda-inject bin/tmda-ofmipd bin/tmda-keygen
+        run: python -m py_compile bin/tmda-address bin/tmda-check-address bin/tmda-filter bin/tmda-inject bin/tmda-keygen bin/tmda-ofmipd bin/tmda-pending bin/tmda-rfilter bin/tmda-sendmail
