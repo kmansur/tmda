@@ -201,7 +201,7 @@ class Deliver:
             fp.write(message)
             # Add a trailing blank line.
             fp.write(b'\n')
-            fp.write('\1\1\1\1\n')
+            fp.write(b'\1\1\1\1\n')
             fp.flush()
             os.fsync(fp.fileno())
             # Unlock and close the file.
