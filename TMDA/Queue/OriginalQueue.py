@@ -121,7 +121,9 @@ class OriginalQueue(Queue):
         # Write ~/.tmda/pending/MAILID.msg
         fcontents = Util.msg_as_string(msg)
         fpath = os.path.join(Defaults.PENDING_DIR, fname)
-        Util.writefile(fcontents, fpath)
+        with open(fpath, 'xb') as fp:
+            fp.write(fcontents.encode('latin-1') if isinstance(fcontents, str)
+                     else fcontents)
         del msg['X-TMDA-Recipient']
 
 
