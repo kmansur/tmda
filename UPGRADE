@@ -9,15 +9,15 @@ Python 3 migration development notes (not a production release)
 This development branch is being tested with Python 3.13 and 3.14.
 Version 1.1.12 and its "Macallan" codename have not been changed.
 
-* The SMTP proxy tmda-ofmipd currently requires the pyasyncore and
-  pyasynchat compatibility packages on Python 3.12 and later:
+* The SMTP proxy tmda-ofmipd now uses TMDA/SMTPEventLoop.py,
+  a selectors-based event loop written for Python 3. It no longer
+  needs pyasyncore or pyasynchat. The supported SMTP commands,
+  wire formats, and local configuration settings remain unchanged.
 
-    python -m pip install pyasyncore==1.0.5 pyasynchat==1.0.5
-
-  These packages provide the removed standard-library asyncore and
-  asynchat interfaces. TLS and STARTTLS now use Python's standard
-  ssl module, with TLS 1.2 as the minimum protocol version. The
-  event loop itself has not yet been replaced.
+  TLS and STARTTLS use Python's standard ssl module, with TLS 1.2
+  as the minimum protocol version. The new event loop has passed
+  isolated socket and TLS regression tests, but has not undergone
+  production load and failure testing.
 
 * File authentication using encrypted Unix password hashes requires
   the optional legacycrypt package on Python 3.13 and later:
