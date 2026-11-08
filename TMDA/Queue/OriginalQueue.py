@@ -87,7 +87,8 @@ class OriginalQueue(Queue):
             fpath = os.path.join(Defaults.PENDING_DIR, msg)
             if Defaults.PENDING_DELETE_APPEND:
                 try:
-                    msgobj = Util.msg_from_file(open(fpath, 'r'))
+                    with open(fpath, 'r', encoding='latin-1') as fp:
+                        msgobj = Util.msg_from_file(fp)
                 except IOError:
                     # in case of concurrent cleanups
                     pass
@@ -105,7 +106,7 @@ class OriginalQueue(Queue):
         cwd = os.getcwd()
         os.chdir(Defaults.PENDING_DIR)
         msgs = glob.glob('*.*.msg')
-        ids = [i.rstrip('.msg') for i in msgs]
+        ids = [i[:-4] for i in msgs]
         os.chdir(cwd)
         return ids
 
@@ -126,8 +127,8 @@ class OriginalQueue(Queue):
 
     def fetch_message(self, mailid, fullParse=False):
         fpath = os.path.join(Defaults.PENDING_DIR, mailid + '.msg')
-        msg = Util.msg_from_file(open(fpath, 'r'),fullParse=fullParse)
-        return msg
+        with open(fpath, 'r', encoding='latin-1') as fp:
+            return Util.msg_from_file(fp, fullParse=fullParse)
 
 
     def delete_message(self, mailid):
