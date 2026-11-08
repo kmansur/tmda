@@ -30,8 +30,6 @@ import signal
 import socket
 import ssl
 import sys
-import asynchat
-import asyncore
 import base64
 import hmac
 import imaplib
@@ -50,6 +48,7 @@ except ImportError:
     sys.path.insert(0, sitedir)
 
 
+from TMDA import SMTPEventLoop as asyncore
 from TMDA import Util
 from TMDA import Version
 
@@ -60,7 +59,7 @@ class Devnull:
     def flush(self): pass
 
 
-class SMTPSession(asynchat.async_chat):
+class SMTPSession(asyncore.async_chat):
     COMMAND = 0
     DATA = 1
     AUTH = 2
@@ -70,7 +69,7 @@ class SMTPSession(asynchat.async_chat):
     def __init__(self, conn, process_msg_func):
         # Base class __init__ calls
 
-        asynchat.async_chat.__init__(self, conn)
+        asyncore.async_chat.__init__(self, conn)
 
         # Save our own __init__ parameters
 
@@ -186,7 +185,7 @@ class SMTPSession(asynchat.async_chat):
             data = msg + b'\r\n'
         else:
             data = (msg + '\r\n').encode('latin-1')
-        asynchat.async_chat.push(self, data)
+        asyncore.async_chat.push(self, data)
 
     # Implementation of base class abstract method
     def collect_incoming_data(self, data):
