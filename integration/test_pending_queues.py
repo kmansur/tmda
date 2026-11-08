@@ -13,6 +13,7 @@
 """Exercise pending queues without a production TMDA configuration."""
 
 from email.message import EmailMessage
+from email.parser import Parser
 import importlib
 import os
 import pathlib
@@ -88,6 +89,26 @@ class PendingQueueTests(unittest.TestCase):
         self.assertIsNone(msg.get('X-TMDA-Recipient'))
         queue.delete_message(mailid)
         self.assertFalse(queue.find_message(mailid))
+
+
+    def test_eight_bit_body_is_not_reencoded(self):
+        for queue_class in (self.OriginalQueue, self.MaildirQueue):
+            with self.subTest(queue=queue_class.__name__):
+                self.defaults.PENDING_DIR = str(
+                    pathlib.Path(self.tmp.name) / queue_class.__name__)
+                msg = Parser().parsestr(
+                    'From: alice@example.com\nSubject: Raw body\n\nA\xffB')
+                queue = queue_class()
+                queue.insert_message(msg, '1700000000.123', 'bob@example.com')
+                if queue_class is self.OriginalQueue:
+                    path = pathlib.Path(self.defaults.PENDING_DIR) / '1700000000.123.msg'
+                else:
+                    path = next((pathlib.Path(self.defaults.PENDING_DIR) / 'new').iterdir())
+                data = path.read_bytes()
+                self.assertIn(b'A\xffB', data)
+                self.assertNotIn(b'A\xc3\xbfB', data)
+                fetched = queue.fetch_message('1700000000.123')
+                self.assertIn('A\xffB', fetched.get_payload())
 
     def test_maildir_missing_id_reports_requested_id(self):
         queue = self.MaildirQueue()
