@@ -1,0 +1,33 @@
+name: Python 3 isolated install smoke test
+
+on:
+  push:
+    branches:
+      - feature/python3-migration
+  pull_request:
+
+jobs:
+  venv-install:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.13', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Create an isolated virtual environment
+        run: python -m venv .tmda-test-venv
+      - name: Build and install the local development package
+        run: |
+          .tmda-test-venv/bin/python -m pip install --upgrade pip
+          .tmda-test-venv/bin/python -m pip install .
+      - name: Check installed package outside the source tree
+        working-directory: /tmp
+        run: |
+          "$GITHUB_WORKSPACE/.tmda-test-venv/bin/python" -c "import TMDA, TMDA.SMTPEventLoop; print(TMDA.__file__)"
+          "$GITHUB_WORKSPACE/.tmda-test-venv/bin/tmda-address" -V
+          "$GITHUB_WORKSPACE/.tmda-test-venv/bin/tmda-keygen" -V
+          "$GITHUB_WORKSPACE/.tmda-test-venv/bin/tmda-ofmipd" --help > /dev/null
