@@ -146,5 +146,36 @@ class SMTPLoopbackTests(unittest.TestCase):
             self.assertIn('A\xffB', message)
 
 
+    def test_two_independent_client_sessions(self):
+        other = socket.create_connection(self.server.socket.getsockname(), timeout=2)
+        other.setblocking(False)
+        try:
+            self._pump()
+            greeting = b''
+            for _ in range(20):
+                self._pump()
+                try:
+                    greeting += other.recv(4096)
+                except BlockingIOError:
+                    pass
+                if greeting.endswith(b'\r\n'):
+                    break
+            self.assertTrue(greeting.startswith(b'220 '))
+            other.sendall(b'EHLO other.example\r\n')
+            other_reply = b''
+            for _ in range(25):
+                self._pump()
+                try:
+                    other_reply += other.recv(4096)
+                except BlockingIOError:
+                    pass
+                if b'\r\n250 ' in other_reply:
+                    break
+            self.assertIn(b'AUTH ', other_reply)
+            self.assertEqual(self._command(b'NOOP'), b'250 Ok\r\n')
+        finally:
+            other.close()
+
+
 if __name__ == '__main__':
     unittest.main()
