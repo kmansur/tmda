@@ -137,3 +137,28 @@ entry points still require dedicated runtime and syntax coverage.
 These tests do not yet cover internationalized RFC 6532 headers,
 malformed MIME, message size limits, multiple outgoing recipients,
 real MTA delivery, or all mail transport configurations.
+
+Outgoing SMTP transport regression tests
+----------------------------------------
+
+The integration/test_outgoing_smtp.py suite uses mock SMTP connections.
+It verifies Python 3 STARTTLS invocation with an SSLContext that
+validates remote certificates, EHLO refresh after STARTTLS, optional
+client certificate settings, SMTP authentication and message passing.
+A plain SMTP connection remains available when SMTPSSL is disabled.
+
+The tmda-inject integration test now also verifies that failed local
+sendmail-compatible subprocesses do not produce a successful process
+exit status. This is a simulated transport failure, not a production
+delivery test.
+
+The outgoing SMTP transport defaults now validate the certificate
+chain of the SMTP server when SMTPSSL is enabled. Environments with
+private PKI must configure appropriate system trust roots, rather
+than relying on the original unverified TLS behavior. Client
+certificates require both SMTPSSL_KEYFILE and SMTPSSL_CERTFILE.
+
+Known limitations remain: no live Postfix delivery has been tested,
+the SMTP transport's certificate hostname policy has only mock
+coverage, and internationalized headers and malformed MIME have not
+yet been comprehensively verified.
