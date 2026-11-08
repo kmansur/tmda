@@ -32,6 +32,7 @@ and licensed under the GNU General Public License version 2.
 """
 
 import smtplib
+import ssl
 
 from . import Defaults
 
@@ -47,8 +48,15 @@ class Connection:
         self.__numsessions = Defaults.SMTP_MAX_SESSIONS_PER_CONNECTION
         # Optional TLS (SSL) mode.
         if Defaults.SMTPSSL:
-            self.__conn.starttls(Defaults.SMTPSSL_KEYFILE,
-                                 Defaults.SMTPSSL_CERTFILE)
+            context = ssl.create_default_context()
+            keyfile = Defaults.SMTPSSL_KEYFILE
+            certfile = Defaults.SMTPSSL_CERTFILE
+            if keyfile or certfile:
+                if not (keyfile and certfile):
+                    raise ValueError("Both SMTPSSL_KEYFILE and SMTPSSL_CERTFILE are required")
+                context.load_cert_chain(certfile=certfile, keyfile=keyfile)
+            self.__conn.starttls(context=context)
+            self.__conn.ehlo()
         # Optional SMTP Authentication.
         if Defaults.SMTPAUTH_USERNAME and Defaults.SMTPAUTH_PASSWORD:
             self.__conn.login(Defaults.SMTPAUTH_USERNAME,
