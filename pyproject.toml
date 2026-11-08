@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tmda"
+version = "1.1.12"
+description = "Tagged Message Delivery Agent — Python 3 migration development build"
+readme = "README.md"
+requires-python = ">=3.13"
+license = "GPL-2.0-or-later"
+authors = [{ name = "Jason R. Mastaler" }]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: System Administrators",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Communications :: Email",
+]
+keywords = ["email", "smtp", "tagged-addresses", "spam"]
+
+[tool.setuptools]
+include-package-data = false
+script-files = [
+  "bin/tmda-address",
+  "bin/tmda-check-address",
+  "bin/tmda-filter",
+  "bin/tmda-inject",
+  "bin/tmda-keygen",
+  "bin/tmda-ofmipd",
+  "bin/tmda-pending",
+  "bin/tmda-rfilter",
+  "bin/tmda-sendmail",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["TMDA", "TMDA.Queue"]
