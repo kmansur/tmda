@@ -103,12 +103,8 @@ class OriginalQueue(Queue):
 
 
     def fetch_ids(self):
-        cwd = os.getcwd()
-        os.chdir(Defaults.PENDING_DIR)
-        msgs = glob.glob('*.*.msg')
-        ids = [i[:-4] for i in msgs]
-        os.chdir(cwd)
-        return ids
+        msgs = glob.glob(os.path.join(Defaults.PENDING_DIR, '*.*.msg'))
+        return [os.path.basename(path)[:-4] for path in msgs]
 
 
     def insert_message(self, msg, mailid, recipient):
