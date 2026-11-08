@@ -309,7 +309,7 @@ def main():
         resending = None
     if not fullname:
         fullname = Defaults.FULLNAME
-    if not from_address or len(string.split(from_address,'@')) != 2:
+    if not from_address or len(from_address.split('@')) != 2:
         from_address = Defaults.USERNAME + '@' + Defaults.HOSTNAME
         
     # If recipients were provided as arguments, use them.
