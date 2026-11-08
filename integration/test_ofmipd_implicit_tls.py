@@ -12,7 +12,7 @@
 
 """Exercise implicit TLS using an isolated SMTP socket and test certificate."""
 
-import asyncore
+from TMDA import SMTPEventLoop as asyncore
 import contextlib
 import io
 import pathlib
