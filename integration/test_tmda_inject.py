@@ -81,6 +81,19 @@ class TMDAInjectTests(unittest.TestCase):
                 next(outgoing.iter_attachments()).get_payload(decode=True),
                 b'\x00\xff\x01')
 
+            # A failing mail transport must not report successful delivery.
+            sendmail.write_text(
+                '#!' + sys.executable + '\n'
+                'import sys\n'
+                'sys.exit(75)\n',
+                encoding='utf-8')
+            failed = subprocess.run(
+                [sys.executable, str(SCRIPT), 'bob@example.com'],
+                input=msg.as_bytes(), cwd=ROOT, env=env,
+                capture_output=True)
+            self.assertNotEqual(failed.returncode, 0)
+
+
 
 if __name__ == '__main__':
     unittest.main()
