@@ -176,6 +176,8 @@ class Deliver:
         try:
 	    # When orig_length is None, we haven't opened the file yet.
             orig_length = None
+            if isinstance(message, str):
+                message = message.encode('latin-1')
             # Open the mmdf file.
             fp = open(mmdf, 'rb+')
             lock_file(fp)
@@ -184,21 +186,21 @@ class Deliver:
             # with "\1\1\1\1\n" in their first line, or are 0-length files.
             fp.seek(0, 0)                # seek to start
             first_line = fp.readline()
-            if first_line != '' and first_line[:5] != '\1\1\1\1\n':
+            if first_line != b'' and first_line[:5] != b'\1\1\1\1\n':
                 # Not an mmdf file; abort here.
                 unlock_file(fp)
                 fp.close()
                 raise Errors.DeliveryError('Destination "%s" is not an mmdf file!' % mmdf)
             fp.seek(0, 2)                # seek to end
             orig_length = fp.tell()      # save original length
-            fp.write('\1\1\1\1\n')
+            fp.write(b'\1\1\1\1\n')
             # Add a trailing newline if last line incomplete.
-            if message[-1] != '\n':
-                message = message + '\n'
+            if message[-1:] != b'\n':
+                message = message + b'\n'
             # Write the message.
             fp.write(message)
             # Add a trailing blank line.
-            fp.write('\n')
+            fp.write(b'\n')
             fp.write('\1\1\1\1\n')
             fp.flush()
             os.fsync(fp.fileno())
@@ -233,6 +235,8 @@ class Deliver:
         try:
 	    # When orig_length is None, we haven't opened the file yet.
             orig_length = None
+            if isinstance(message, str):
+                message = message.encode('latin-1')
             # Open the mbox file.
             fp = open(mbox, 'rb+')
             lock_file(fp)
@@ -241,7 +245,7 @@ class Deliver:
             # with "From " in their first line, or are 0-length files.
             fp.seek(0, 0)                # seek to start
             first_line = fp.readline()
-            if first_line != '' and first_line[:5] != 'From ':
+            if first_line != b'' and first_line[:5] != b'From ':
                 # Not an mbox file; abort here.
                 unlock_file(fp)
                 fp.close()
@@ -249,12 +253,12 @@ class Deliver:
             fp.seek(0, 2)                # seek to end
             orig_length = fp.tell()      # save original length
             # Add a trailing newline if last line incomplete.
-            if message[-1] != '\n':
-                message = message + '\n'
+            if message[-1:] != b'\n':
+                message = message + b'\n'
             # Write the message.
             fp.write(message)
             # Add a trailing blank line.
-            fp.write('\n')
+            fp.write(b'\n')
             fp.flush()
             os.fsync(fp.fileno())
             # Unlock and close the file.
@@ -346,7 +350,7 @@ class Deliver:
             except OSError:
                 # Not running as root, can't chown file.
                 pass
-            fp.write(message)
+            fp.write(message.encode('latin-1') if isinstance(message, str) else message)
             fp.flush()
             os.fsync(fp.fileno())
             fp.close()
