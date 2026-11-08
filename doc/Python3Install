@@ -1,0 +1,57 @@
+Python 3 Development Installation
+=================================
+
+This is a development-only installation procedure for the ongoing
+migration of TMDA 1.1.12. It is not a production release.
+
+Validated environments
+----------------------
+
+The GitHub Actions workflow python3-install.yml installs the package
+inside a clean virtual environment with Python 3.13 and Python 3.14
+on Ubuntu. FreeBSD deployment is not yet verified.
+
+Linux or FreeBSD test environment
+---------------------------------
+
+Use a non-privileged account and a disposable test directory. Do
+not replace an existing TMDA installation or use a live MTA.
+
+    git clone https://github.com/kmansur/tmda.git
+    cd tmda
+    git switch feature/python3-migration
+
+    python3.13 -m venv .venv
+    .venv/bin/python -m pip install --upgrade pip
+    .venv/bin/python -m pip install .
+
+    .venv/bin/tmda-address -V
+    .venv/bin/tmda-keygen -V
+    .venv/bin/tmda-ofmipd --help
+
+The environment must provide the selected Python interpreter and
+its virtual environment support. Python 3.14 may be used in place
+of Python 3.13.
+
+Python 3 package metadata
+-------------------------
+
+pyproject.toml installs the original TMDA package and nine
+command-line executables. The historical package version remains
+1.1.12; the metadata clearly identifies the build as a development
+migration. The historical Python 2 copy of the email package is
+not included in the installed Python 3 package.
+
+The migration retains original copyright notices and GPL terms.
+
+Development validation
+----------------------
+
+The current CI includes compilation of all extensionless executables,
+cryptographic and compatibility tests, isolated SMTP/TLS loopback
+transactions, message queue tests and a clean virtual environment
+installation. These tests do not certify production delivery.
+
+Do not use this branch for a production mail gateway until real MTA
+integration, timeout and failure recovery, resource limits, sustained
+load and security review have been completed.
