@@ -127,14 +127,8 @@ class MaildirQueue(Queue):
 
 
     def fetch_ids(self):
-        cwd = os.getcwd()
-        os.chdir(os.path.join(Defaults.PENDING_DIR, 'new'))
-        new_msgs = glob('1*.[0-9]*.*')
-        os.chdir(os.path.join(Defaults.PENDING_DIR, 'cur'))
-        cur_msgs = glob('1*.[0-9]*.*')
-        ids = ['.'.join(i.split('.')[:2]) 
-               for i in new_msgs + cur_msgs]
-        os.chdir(cwd)
+        ids = ['.'.join(os.path.basename(path).split('.')[:2])
+               for path in self._messages()]
         return ids
 
 
