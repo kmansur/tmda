@@ -101,6 +101,7 @@ from TMDA import Util
 
 from email.utils import formataddr, getaddresses, parseaddr
 import socket
+import string
 
 
 # Just check Defaults.FILTER_OUTGOING for syntax errors and possible
@@ -267,7 +268,7 @@ def inject_message(resending,
         if not (cookie_type in ('python','shell', None)):
             field = message_format(field, full_name,
                                    Defaults.MESSAGE_TAG_HEADER_STYLE)
-        nice_header = header.replace('-', ' ').title().replace(' ', '-')
+        nice_header = string.capwords(header.replace('-', ' ')).replace(' ', '-')
         nice_headers[nice_header] = field
     Util.add_headers(msg, nice_headers)
     # Optionally, log this transmission.
