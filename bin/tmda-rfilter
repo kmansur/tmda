@@ -173,7 +173,7 @@ from TMDA import MTA
 from TMDA import Util
 from TMDA.Queue.Queue import Queue
 
-from io import StringIO
+from io import BytesIO
 from email.utils import parseaddr, getaddresses
 import email
 import fileinput
@@ -204,7 +204,7 @@ Q = Q.init()
 mta = MTA.init(Defaults.MAIL_TRANSFER_AGENT, Defaults.DELIVERY)
 
 # Read sys.stdin into a temporary variable for later access.
-stdin = StringIO(sys.stdin.read())
+stdin = BytesIO(sys.stdin.buffer.read())
 
 # The incoming message as an email.Message object.
 msgin = Util.msg_from_file(stdin)
@@ -263,11 +263,11 @@ if envelope_sender == '':
 # This is often the case when the message is sent between local users
 # on a Sendmail system.
 elif (Defaults.MAIL_TRANSFER_AGENT == 'sendmail' and
-      len(string.split(envelope_sender,'@')) == 1):
+      len(envelope_sender.split('@')) == 1):
     envelope_sender = envelope_sender + '@' + Util.gethostname()
 # Ditto for envelope_recipient
 if (Defaults.MAIL_TRANSFER_AGENT == 'sendmail' and
-    len(string.split(envelope_recipient,'@')) == 1):
+    len(envelope_recipient.split('@')) == 1):
     envelope_recipient = envelope_recipient + '@' + Util.gethostname()
 
 # recipient_address is the original address the message was sent to,
@@ -664,8 +664,8 @@ def verify_sender_cookie(sender_address,sender_cookie):
 
 def verify_keyword_cookie(keyword_cookie):
     """Verify a keyword cookie."""
-    parts = string.split(keyword_cookie, '.')
-    keyword = string.join(parts[:-1], '.')
+    parts = keyword_cookie.split('.')
+    keyword = '.'.join(parts[:-1])
     mac = parts[-1:][0]
     newmac = Cookie.make_keywordmac(keyword)
     # Accept the message only if the HMAC can be verified.
