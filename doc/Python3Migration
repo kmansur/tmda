@@ -34,7 +34,7 @@ Compatibility work completed
 * Key generation, authentication encoding and CLI smoke tests.
 * Python 3 standard-library email instead of the bundled Python 2
   email package on the entry-point path.
-* Temporary pyasyncore and pyasynchat dependency for the SMTP event loop.
+* Selectors-based SMTP event loop without pyasyncore/pyasynchat.
 * TLS and STARTTLS use ssl.SSLContext rather than the old tlslite
   dependency, with TLS 1.2 as the minimum accepted version.
 * Optional legacycrypt fallback for encrypted Unix password files.
@@ -95,8 +95,9 @@ STARTTLS before AUTH in --tls on mode, and post-handshake SMTP
 commands. STARTTLS authentication and DATA are delivered only to an
 in-memory callback. No real MTA or external server is contacted.
 
-The core SMTP event loop still requires pyasyncore/pyasynchat. Do not
-interpret passing isolated tests as production TLS certification.
+The SMTP event loop uses TMDA.SMTPEventLoop and Python's selectors
+module without pyasyncore or pyasynchat. Do not interpret passing
+isolated tests as production TLS certification.
 
 Pending queues and local delivery
 ---------------------------------
@@ -162,3 +163,23 @@ Known limitations remain: no live Postfix delivery has been tested,
 the SMTP transport's certificate hostname policy has only mock
 coverage, and internationalized headers and malformed MIME have not
 yet been comprehensively verified.
+
+Selectors-based SMTP event loop
+-------------------------------
+
+TMDA/SMTPEventLoop.py provides the socket dispatcher and delimiter-
+based chat operations needed by the original tmda-ofmipd. It is
+not a general-purpose compatibility implementation of asyncore or
+asynchat. The SMTP proxy and isolated tests now use the local module.
+Both SMTP GitHub Actions workflows run without installing
+pyasyncore or pyasynchat.
+
+The additional tests exercise fragmented command terminators,
+SMTP command pipelining, large payloads across socket reads,
+output producers, response flushing and concurrent SMTP sessions.
+SMTP transport and TLS loopback regressions still run on Python
+3.13 and 3.14 without external event loop packages.
+
+Production use remains prohibited until stress testing, protocol
+fuzzing, TLS handshake failure handling, socket resource limits,
+and integration with actual MTAs are fully validated.
