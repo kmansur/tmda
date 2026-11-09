@@ -477,3 +477,23 @@ checks that all nine original template filenames are present in
 sys.prefix/share/tmda for Python 3.12, 3.13 and 3.14.
 This is packaging parity with the original confirmation and
 bounce templates, not a new feature.
+
+Original wrapper and address-check CLI compatibility
+---------------------------------------------------
+
+The tmda-sendmail compatibility wrapper passes a nonempty executable
+name in argv[0] when replacing itself with tmda-inject, as required
+by Python 3 os.execv(). The legacy -t header-recipient mode, explicit
+recipients, -f envelope sender option, and -F display-name option are
+checked against a disposable adjacent tmda-inject executable.
+
+The tmda-filter exception wrapper retains the original temporary
+failure exit code 75 for unexpected filter errors and preserves
+explicit SystemExit status 99 without reporting a delivery failure.
+Both behaviors are covered by isolated integration tests without
+sending real mail.
+
+The tagged-address command tests cover sender-bound addresses with
+matching and nonmatching senders as well as an authentically signed
+expired dated cookie. These tests extend verification of original
+TMDA 1.1.12 behavior without introducing new address types.
