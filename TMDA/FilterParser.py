@@ -742,23 +742,23 @@ class FilterParser:
 
 
     def __search_dbm(self, pathname, keys, actions, source):
-        """
-        Search a DBM-style database.
-        """
+        """Search a legacy DBM address list, decoding stored byte values."""
         import dbm
-        dbm = dbm.open(pathname, 'r')
         found_match = 0
-        for key in keys:
-            if key and key.lower() in dbm:
+        with dbm.open(pathname, 'r') as database:
+            for key in keys:
+                if not key:
+                    continue
+                normalized = key.lower()
+                if normalized not in database:
+                    continue
                 found_match = 1
-                dbm_value = dbm[key.lower()]
-                # If there is an entry for this key,
-                # we consider it an overriding action
-                # specification.
+                dbm_value = database[normalized]
                 if dbm_value:
+                    if isinstance(dbm_value, bytes):
+                        dbm_value = dbm_value.decode('latin-1')
                     actions.clear()
                     actions.update(self.__buildactions(dbm_value, source))
-                dbm.close()
                 break
         return found_match
 
@@ -999,9 +999,11 @@ class FilterParser:
                     # file.
                     try_open = 0
                 if try_open:
-                    mmdb_file = open(dbfile, 'r')
-                    mmdb_data = Serializer.load(mmdb_file)
-                    mmdb_file.close()
+                    with open(dbfile, 'rb') as mmdb_file:
+                        if Serializer.__name__ == 'pickle':
+                            mmdb_data = Serializer.load(mmdb_file, encoding='latin-1')
+                        else:
+                            mmdb_data = Serializer.load(mmdb_file)
                     mmdb_addylist = mmdb_data[mmdb_key]
                     # Make sure mmdb_addylist is a list of e-mail addresses.
                     if type(mmdb_addylist) is dict:
