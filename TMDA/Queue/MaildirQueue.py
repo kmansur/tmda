@@ -40,7 +40,7 @@ import time
 from TMDA import Defaults
 from TMDA import Errors
 from TMDA import Util
-from TMDA.Queue.Queue import Queue
+from TMDA.Queue.Queue import Queue, validate_mailid
 
 
 def alarm_handler(signum, frame):
@@ -88,27 +88,16 @@ class MaildirQueue(Queue):
             return
         
         lifetimesecs = Util.seconds(Defaults.PENDING_LIFETIME)
-        cwd = os.getcwd()
-        os.chdir(os.path.join(Defaults.PENDING_DIR, 'new'))
-        new_msgs = glob('1*.[0-9]*.*')
-        os.chdir(os.path.join(Defaults.PENDING_DIR, 'cur'))
-        cur_msgs = glob('1*.[0-9]*.*')
-        os.chdir(cwd)
-        msgs = new_msgs + cur_msgs
+        msgs = self._messages()
 
         for msg in msgs:
             now = '%d' % time.time()
             min_time = int(now) - int(lifetimesecs)
-            msg_time = int(msg.split('.')[0])
+            msg_time = int(os.path.basename(msg).split('.')[0])
             if msg_time > min_time:
                 # skip this message
                 continue
-            # delete this message
-            for f in (os.path.join(Defaults.PENDING_DIR, 'new', msg),
-                      os.path.join(Defaults.PENDING_DIR, 'cur', msg)):
-                if os.path.exists(f):
-                    fpath = f
-                    break
+            fpath = msg
             if Defaults.PENDING_DELETE_APPEND:
                 try:
                     with open(fpath, 'r', encoding='latin-1') as fp:
@@ -133,6 +122,7 @@ class MaildirQueue(Queue):
 
 
     def insert_message(self, msg, mailid, recipient):
+        validate_mailid(mailid)
         # Create the Maildir if necessary.
         self._create()
         # X-TMDA-Recipient is used by release_pending()
@@ -151,6 +141,7 @@ class MaildirQueue(Queue):
                 glob(os.path.join(Defaults.PENDING_DIR, 'cur', '1*.[0-9]*.*')))
 
     def _matching_messages(self, mailid):
+        validate_mailid(mailid)
         """Match the complete mail identifier, not an arbitrary substring."""
         prefix = mailid + '.'
         return [path for path in self._messages()
