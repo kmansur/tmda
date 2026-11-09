@@ -750,7 +750,8 @@ class FilterParser:
         """Search a legacy DBM address list, decoding stored byte values."""
         import dbm
         found_match = 0
-        with dbm.open(pathname, 'r') as database:
+        database = dbm.open(pathname, 'r')
+        try:
             for key in keys:
                 if not key:
                     continue
@@ -765,6 +766,8 @@ class FilterParser:
                     actions.clear()
                     actions.update(self.__buildactions(dbm_value, source))
                 break
+        finally:
+            database.close()
         return found_match
 
 
