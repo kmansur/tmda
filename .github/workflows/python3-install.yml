@@ -31,3 +31,7 @@ jobs:
           "$GITHUB_WORKSPACE/.tmda-test-venv/bin/tmda-address" -V
           "$GITHUB_WORKSPACE/.tmda-test-venv/bin/tmda-keygen" -V
           "$GITHUB_WORKSPACE/.tmda-test-venv/bin/tmda-ofmipd" --help > /dev/null
+      - name: Verify original TMDA response templates are installed
+        working-directory: /tmp
+        run: |
+          "$GITHUB_WORKSPACE/.tmda-test-venv/bin/python" -c 'import sys, pathlib; d = pathlib.Path(sys.prefix) / "share" / "tmda"; expected = {"confirm_request.txt", "confirm_accept.txt", "bounce_invalid_confirmation.txt", "bounce_missing_pending.txt", "bounce_incoming.txt", "bounce_expired_dated.txt", "bounce_fail_dated.txt", "bounce_fail_keyword.txt", "bounce_fail_sender.txt"}; found = {p.name for p in d.glob("*.txt")}; assert found == expected, (d, found); print("Original TMDA templates:", len(found))'
