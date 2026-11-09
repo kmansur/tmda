@@ -390,3 +390,22 @@ with reversible latin-1 decoding rather than the Python 3 default
 locale encoding. This preserves original eight-bit subscriber
 addresses and NUL-separated record boundaries. The integration
 suite includes a legacy subscriber file with a non-ASCII byte.
+
+Original confirmation request and accept/done cycle
+--------------------------------------------------
+
+The integration/test_incoming_pending_cycle.py suite now exercises
+the legacy full confirmation workflow with disposable configuration:
+the original confirm_request.txt template generates a confirmation
+request and Reply-To tagged address while the message is retained.
+
+A separate cycle retains an incoming message, creates a genuine
+historical HMAC-SHA1 accept cookie, invokes the original tmda-rfilter
+confirmation-address handler, verifies reinjection with
+X-TMDA-Confirm-Done and the original message body, then feeds that
+message back through the incoming filter. The final done-cookie
+verification deletes the pending message. No external mail delivery
+is performed by these test cases.
+
+This is behavior regression coverage for existing TMDA 1.1.12
+features, not a change to confirmation semantics.
