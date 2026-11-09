@@ -45,5 +45,43 @@ class DefaultsTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
 
 
+    def test_legacy_configparser_mode_preserves_literal_values(self):
+        """CONFIG_EXEC=False reads literals without interpreting Python."""
+        with tempfile.TemporaryDirectory() as home:
+            datadir = pathlib.Path(home) / '.tmda'
+            datadir.mkdir()
+            key = datadir / 'crypt_key'
+            key.write_text('00112233445566778899aabbccddeeff00112233\n',
+                           encoding='ascii')
+            key.chmod(0o600)
+            config = datadir / 'config.ini'
+            config.write_text(
+                '[TMDA_CONFIG]\n'
+                'username = alice\n'
+                'hostname = example.org\n'
+                'fullname = Quoted "Name" and backslash \\ character\n'
+                'max_autoresponses_per_day = 1\n',
+                encoding='utf-8')
+            env = os.environ.copy()
+            env.update({
+                'HOME': home,
+                'TMDARC': str(config),
+                'GLOBAL_TMDARC': str(datadir / 'absent-global'),
+            })
+            code = (
+                "import runpy; "
+                "d = runpy.run_module('TMDA.Defaults', "
+                "init_globals={'CONFIG_EXEC': False}); "
+                "assert d['USERNAME'] == 'alice'; "
+                "assert d['HOSTNAME'] == 'example.org'; "
+                "assert d['FULLNAME'] == 'Quoted \"Name\" and backslash \\\\ character'; "
+                "assert d['MAX_AUTORESPONSES_PER_DAY'] == 1"
+            )
+            result = subprocess.run(
+                [sys.executable, '-c', code], cwd=ROOT, env=env,
+                capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+
 if __name__ == '__main__':
     unittest.main()
