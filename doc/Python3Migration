@@ -323,3 +323,30 @@ basic concurrency and error-path behavior only. It does not
 demonstrate crash-safe filesystem directory fsync semantics,
 network filesystem guarantees, sustained high throughput,
 or durability following sudden power loss.
+
+Legacy auto-response and contrib compatibility audit
+---------------------------------------------------
+
+The three original AUTORESPONSE_INCLUDE_SENDER_COPY modes (0, 1,
+and 2) are exercised by integration/test_autoresponse_compat.py
+through the original AutoResponse generator and MIME serializer.
+
+The optional Python helper scripts under contrib/ retain their
+original interfaces and purpose. collectaddys now uses current
+mailbox.mbox, mailbox.Maildir and mailbox.MH readers with
+email.utils.parseaddr. def2html uses Python 3 comparison and option
+parsing, and printdbm/printcdb normalize byte strings for the
+original key/value line output. smtp-check-sender retains its
+original SMTP status convention with Python 3 print syntax.
+
+The original utility behavior is regression tested with temporary
+mailboxes, DBM data and Defaults input in
+integration/test_contrib_compatibility.py. All five Python helpers
+are included in Python 3 source compilation checks.
+
+The third-party cdb and DNS libraries remain external optional
+dependencies, as in TMDA 1.1.12; these tests do not claim they
+are available or compatible in every FreeBSD Python environment.
+The Perl and shell contrib scripts do not need Python translation.
+The historical Python 2 email library remains in the source
+archive but is not installed or imported by the Python 3 package.
