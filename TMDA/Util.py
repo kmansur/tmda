@@ -572,25 +572,26 @@ def sendmail(msgstr, envrecip, envsender):
         raise Errors.ConfigError("Invalid MAIL_TRANSPORT method: " + Defaults.MAIL_TRANSPORT)
 
 
-def decode_header(str):
-    """Accept a possibly encoded message header as a string, and
-    return a decoded string if it can be decoded.
+def decode_header(value):
+    """Decode a possibly encoded message header into text.
 
-    JRM: email.header has a decode_header method, but it returns a
-    list of decoded pairs, one for each part of the header, which is
-    an awkward interface IMO, especially when the header contains a
-    mix of encoded and non-encoded parts.
+    Missing optional headers should not prevent listing or releasing
+    pending messages. Preserve historical plain header strings.
     """
+    if value is None:
+        return ''
+    if isinstance(value, bytes):
+        value = value.decode('latin-1')
     try:
         from email import header
         parts = []
-        pairs = header.decode_header(str)
-        for pair in pairs:
-            parts.append(pair[0])
-        decoded_string = ' '.join(parts)
-        return decoded_string
-    except email.errors.HeaderParseError:
-        return str
+        for contents, charset in header.decode_header(value):
+            if isinstance(contents, bytes):
+                contents = contents.decode(charset or 'latin-1', errors='replace')
+            parts.append(contents)
+        return ' '.join(parts)
+    except (email.errors.HeaderParseError, LookupError, UnicodeError):
+        return value
 
 
 def headers_as_list(msg):
