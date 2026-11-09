@@ -357,16 +357,6 @@ class Auth(Util.Debugable):
         """Checks authdict for the password.
         Return 1 for a match, 0 otherwise."""
         self.debug( "Trying file authentication with '%s'" % self.__authfile )
-        try:
-            import crypt
-        except ImportError:
-            try:
-                import legacycrypt as crypt
-            except ImportError as err:
-                raise Errors.AuthError(
-                    'Unix password verification is unavailable.',
-                    'Install legacycrypt to use encrypted password files.'
-                ) from err
         self.__update_authdict()
         pw = self.__authdict.get(username.lower(), 0)
         if pw == 0:
@@ -377,12 +367,27 @@ class Auth(Util.Debugable):
             self.debug( "Blank %s password" % username.lower() )
             raise Errors.AuthError( "User %s is denied login" % username, \
                   "Blank password in file '%s'" % self.__authfile)
-        self.debug( "Comparing encrypted password." )
-        retval = crypt.crypt(password, pw[:2]) == pw
-        if not retval and self.__authfile_allows_cleartext:
-            self.debug( "Comparing un-encrypted password." )
-            retval = password == pw
-        return retval
+        # TMDA's original cleartext mode does not need the Unix crypt
+        # module, which was removed from Python 3.13.
+        if self.__authfile_allows_cleartext and password == pw:
+            self.debug("Comparing un-encrypted password.")
+            return True
+        try:
+            import crypt
+        except ImportError:
+            try:
+                import legacycrypt as crypt
+            except ImportError as err:
+                if self.__authfile_allows_cleartext:
+                    # The password may simply be a wrong cleartext value.
+                    # Do not require a crypt backend for this use case.
+                    return False
+                raise Errors.AuthError(
+                    'Unix password verification is unavailable.',
+                    'Install legacycrypt to use encrypted password files.'
+                ) from err
+        self.debug("Comparing encrypted password.")
+        return crypt.crypt(password, pw[:2]) == pw
 
     def authenticate_plain_checkpw(self, username, password):
         """The checkpassword program should return 0 for auth ok, and a positive
