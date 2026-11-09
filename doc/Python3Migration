@@ -512,3 +512,25 @@ features.
 A real interoperability test is still required for optional LDAP
 providers and production IMAP/POP3 servers, especially their network
 timeouts and TLS certificate policies.
+
+Original CONFIG_EXEC=False and plaintext authentication parity
+-------------------------------------------------------------
+
+The legacy ConfigParser configuration mode (CONFIG_EXEC=False) now
+assigns parsed literal values directly rather than constructing
+Python source statements via exec(). It retains the original
+single-digit-integer convention; empty, quoted and backslash-
+containing values remain strings. This is tested in an isolated
+home with the original TMDA configuration variables.
+
+The password-file authentication backend retains the original
+plaintext-allowed setting without requiring the deprecated Unix
+crypt module just to compare a cleartext password. On Python
+3.13 and 3.14, this avoids an unnecessary dependency for users
+whose tmdauth file permits cleartext credentials. Existing Unix
+password-hash verification still requires crypt or an equivalent
+legacycrypt backend; no hash algorithm or credential format was
+changed. The test suite simulates the absence of both modules
+and verifies correct plaintext acceptance and rejection, as
+well as explicit AuthError for encrypted-only files without a
+crypt backend.
