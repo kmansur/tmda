@@ -131,5 +131,30 @@ class IncomingPendingTests(unittest.TestCase):
         self.assertNotIn(b'X-TMDA-Recipient:', outgoing)
 
 
+    def test_release_failure_does_not_delete_pending_message(self):
+        fake_sendmail = self.home / 'rejected-sendmail'
+        fake_sendmail.write_text(
+            '#!' + sys.executable + '\n'
+            'import sys\n'
+            'sys.exit(75)\n',
+            encoding='ascii')
+        fake_sendmail.chmod(0o700)
+        with pathlib.Path(self.env['TMDARC']).open(
+                'a', encoding='utf-8') as stream:
+            stream.write(
+                'MAIL_TRANSPORT = "sendmail"\n'
+                'SENDMAIL_PROGRAM = ' + repr(str(fake_sendmail)) + '\n')
+
+        filtered = self._run('tmda-rfilter', data=self._incoming_message())
+        self.assertIn(filtered.returncode, (0, 99))
+        saved = list(self.pending.glob('*.msg'))
+        self.assertEqual(len(saved), 1)
+        before = saved[0].read_bytes()
+        released = self._run('tmda-pending', '-b', '-r', saved[0].stem)
+        self.assertNotEqual(released.returncode, 0)
+        self.assertTrue(saved[0].exists())
+        self.assertEqual(saved[0].read_bytes(), before)
+
+
 if __name__ == '__main__':
     unittest.main()
