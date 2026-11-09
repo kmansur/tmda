@@ -25,6 +25,8 @@ import types
 import unittest
 from unittest.mock import patch
 
+from TMDA import Errors
+
 
 class PendingQueueTests(unittest.TestCase):
     @classmethod
@@ -170,7 +172,7 @@ class PendingQueueTests(unittest.TestCase):
                 queue = queue_class()
                 original = self._message()
                 with patch('os.fsync', side_effect=OSError('simulated disk failure')):
-                    with self.assertRaises((OSError, IOError)):
+                    with self.assertRaises((OSError, IOError, Errors.DeliveryError)):
                         queue.insert_message(original, '1700000000.123',
                                              'bob@example.com')
                 self.assertEqual(queue.fetch_ids(), [])
@@ -193,7 +195,7 @@ class PendingQueueTests(unittest.TestCase):
                     try:
                         queue.insert_message(msg, '1700000000.123',
                                              'bob@example.com')
-                    except (OSError, IOError):
+                    except (OSError, IOError, Errors.DeliveryError):
                         return False
                     return True
                 with ThreadPoolExecutor(max_workers=8) as pool:
