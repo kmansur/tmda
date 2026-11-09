@@ -432,3 +432,20 @@ The CDB Python extension and optional LDAP provider need
 independent installation and interoperability checks on FreeBSD.
 Their absence must not be confused with a successful end-to-end
 validation of those optional authentication and list backends.
+
+Legacy autoresponse rate limits and pending CLI parity
+-----------------------------------------------------
+
+The incoming rfilter's MAX_AUTORESPONSES_PER_DAY check now scans
+RESPONSE_DIR without changing the current working directory of the
+running filter. Expired response records are unlinked using paths
+relative to RESPONSE_DIR. The original one-response-per-day rule
+and expired-record cleanup are exercised by integration tests.
+
+tmda-pending has additional compatibility checks for its original
+interactive commands: 'd' deletes a selected held message and 'q'
+preserves it. Its original '-C' seen-message cache is also exercised:
+the first batch listing displays a pending ID, a repeat listing
+suppresses that already-seen ID, and the underlying pending
+message remains intact. The tests run independently on Python
+3.12, 3.13 and 3.14.
