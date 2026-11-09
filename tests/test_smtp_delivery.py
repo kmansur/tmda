@@ -19,7 +19,7 @@ class SMTPDeliveryTests(unittest.TestCase):
              patch.object(SMTP.Defaults, "SMTPAUTH_PASSWORD", ""), \
              patch.object(SMTP.Defaults, "SMTP_MAX_SESSIONS_PER_CONNECTION", 2):
             connection = SMTP.Connection()
-            payload = b"Subject: legacy\\r\\n\\r\\n\\xe7\\r\\n"
+            payload = b"Subject: legacy\r\n\r\n\xe7\r\n"
             self.assertEqual(
                 connection.sendmail("sender@example.org", ["recipient@example.org"], payload),
                 {},
