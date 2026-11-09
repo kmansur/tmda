@@ -12,7 +12,10 @@
 
 """Regression tests for the Python 3 filter parser and pipe rules."""
 
+import dbm
 import importlib
+import pathlib
+import pickle
 import os
 import sys
 import tempfile
@@ -51,6 +54,30 @@ class FilterParserTests(unittest.TestCase):
             parser = self.module.FilterParser()
             parser.read(path)
             self.assertEqual(len(parser.filterlist), 2)
+
+
+    def test_dbm_stored_action_uses_text_not_bytes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'allow.dbm')
+            with dbm.open(path, 'c') as database:
+                database[b'sender@example.com'] = b'accept'
+            parser = self.module.FilterParser()
+            actions = {'incoming': ('hold', None)}
+            found = parser._FilterParser__search_dbm(
+                path, ['SENDER@EXAMPLE.COM'], actions, 'from-dbm')
+            self.assertEqual(found, 1)
+            self.assertEqual(actions['incoming'][0], 'accept')
+
+    def test_dbm_no_match_preserves_default_action(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'allow.dbm')
+            with dbm.open(path, 'c') as database:
+                database[b'sender@example.com'] = b'accept'
+            parser = self.module.FilterParser()
+            actions = {'incoming': ('hold', None)}
+            self.assertEqual(parser._FilterParser__search_dbm(
+                path, ['another@example.com'], actions, 'from-dbm'), 0)
+            self.assertEqual(actions['incoming'][0], 'hold')
 
     def test_pipe_rule_matching(self):
         parser = self.module.FilterParser()
