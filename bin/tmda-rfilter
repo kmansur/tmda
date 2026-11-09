@@ -401,8 +401,9 @@ def autorespond_to_sender(sender):
     if Defaults.MAX_AUTORESPONSES_PER_DAY == 0:
         return 1
     if os.path.isdir(Defaults.RESPONSE_DIR):
-        os.chdir(Defaults.RESPONSE_DIR)
-        files = os.listdir('.')
+        # Resolve records against the response directory without changing
+        # the working directory used by templates and delivery programs.
+        files = os.listdir(Defaults.RESPONSE_DIR)
         sndrlist = []
         for file in files:
             # Ignore foreign files.
@@ -414,7 +415,7 @@ def autorespond_to_sender(sender):
             now = int(time.time())
             if now > (int(timestamp) + Util.seconds('1d')):
                 try:
-                    os.unlink(file)
+                    os.unlink(os.path.join(Defaults.RESPONSE_DIR, file))
                 except OSError:
                     # ignore errors on unlink
                     pass
