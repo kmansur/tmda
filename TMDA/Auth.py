@@ -552,15 +552,16 @@ class Auth(Util.Debugable):
         dictionary containing username:password pairs.  Username is
         returned in lowercase."""
         authdict = {}
-        fp = open(authfile, 'r')
-        for line in fp:
-            line = line.strip()
-            if line == '':
-                continue
-            else:
-                fields = line.split(':', 1)
-                authdict[fields[0].lower().strip()] = fields[1].strip()
-        fp.close()
+        # Python 2 read this file as raw eight-bit strings. Decode
+        # reversibly so existing credential bytes are not lost.
+        with open(authfile, 'r', encoding='latin-1') as fp:
+            for line in fp:
+                line = line.strip()
+                if line == '':
+                    continue
+                else:
+                    fields = line.split(':', 1)
+                    authdict[fields[0].lower().strip()] = fields[1].strip()
         return authdict
 
     def __ipfile2dict(self, ipfile):
