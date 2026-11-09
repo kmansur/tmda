@@ -47,6 +47,34 @@ class AuthenticationTests(unittest.TestCase):
                 {'alice@example.com': 'secret'},
             )
 
+
+    def test_cleartext_authentication_without_crypt_on_python_313(self):
+        auth = self.auth
+        auth.debug = lambda message: None
+        auth._Auth__authfile = '/tmp/tmdauth-cleartext-test'
+        auth._Auth__authdict = {'alice': 'original-secret'}
+        auth._Auth__authfile_allows_cleartext = True
+        auth._Auth__update_authdict = lambda: None
+        # Python >=3.13 has no standard crypt module. Preserve
+        # file-based plaintext mode without an external dependency.
+        with patch.dict('sys.modules', {'crypt': None, 'legacycrypt': None}):
+            self.assertTrue(auth.authenticate_plain_file(
+                'alice', 'original-secret'))
+            self.assertFalse(auth.authenticate_plain_file(
+                'alice', 'incorrect'))
+
+    def test_encrypted_password_requires_crypt_backend_when_unavailable(self):
+        auth = self.auth
+        auth.debug = lambda message: None
+        auth._Auth__authfile = '/tmp/tmdauth-encrypted-test'
+        auth._Auth__authdict = {'alice': 'xxencrypted'}
+        auth._Auth__authfile_allows_cleartext = False
+        auth._Auth__update_authdict = lambda: None
+        from TMDA import Errors
+        with patch.dict('sys.modules', {'crypt': None, 'legacycrypt': None}):
+            with self.assertRaises(Errors.AuthError):
+                auth.authenticate_plain_file('alice', 'original-secret')
+
     def test_legacycrypt_password_verification(self):
         auth = self.auth
         auth.debug = lambda message: None
