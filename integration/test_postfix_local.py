@@ -134,6 +134,45 @@ class LocalPostfixDeliveryTests(unittest.TestCase):
         self._assert_delivered(subject)
 
 
+
+    def test_incoming_hold_then_release_through_postfix(self):
+        """Check the complete incoming retention and real Postfix release."""
+        pending = self.home / '.tmda' / 'pending'
+        incoming = self.home / '.tmda' / 'incoming'
+        incoming.write_text('from * hold\n', encoding='ascii')
+        with self.config.open('a', encoding='utf-8') as stream:
+            stream.write(
+                'FILTER_INCOMING = ' + repr(str(incoming)) + '\n'
+                'PENDING_DIR = ' + repr(str(pending)) + '\n'
+                'PENDING_QUEUE_FORMAT = "original"\n'
+                'PENDING_CLEANUP_ODDS = 0\n')
+        subject = 'TMDA Postfix held and released %d' % os.getpid()
+        input_message = self._message(subject)
+        env = self.env.copy()
+        env.update({
+            'SENDER': 'tmda-ci@localhost',
+            'RECIPIENT': RECIPIENT,
+            'HOST': 'localhost',
+            'LOCAL': 'tmda-ci',
+            'EXT': '',
+        })
+        held = subprocess.run(
+            [sys.executable, str(ROOT / 'bin' / 'tmda-rfilter')],
+            input=input_message, cwd=ROOT, env=env,
+            capture_output=True, timeout=20)
+        self.assertEqual(held.returncode, 0,
+                         held.stderr.decode('utf-8', errors='replace'))
+        stored = list(pending.glob('*.msg'))
+        self.assertEqual(len(stored), 1)
+        self.assertFalse(self._mailbox_contains(subject))
+        released = subprocess.run(
+            [sys.executable, str(ROOT / 'bin' / 'tmda-pending'),
+             '-b', '-r', stored[0].stem],
+            cwd=ROOT, env=env, capture_output=True, timeout=20)
+        self.assertEqual(released.returncode, 0,
+                         released.stderr.decode('utf-8', errors='replace'))
+        self._assert_delivered(subject)
+
     def test_direct_smtp_rejects_unknown_local_recipient(self):
         """An unknown local recipient must not appear as successful delivery."""
         with self.config.open('a', encoding='utf-8') as stream:
