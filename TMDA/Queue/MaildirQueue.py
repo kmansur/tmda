@@ -72,11 +72,10 @@ class MaildirQueue(Queue):
 
 
     def _create(self):
-        if not self.exists():
-            dirpath = Defaults.PENDING_DIR
-            os.makedirs(os.path.join(dirpath, 'cur'), 0o700)
-            os.mkdir(os.path.join(dirpath, 'new'), 0o700)
-            os.mkdir(os.path.join(dirpath, 'tmp'), 0o700)
+        dirpath = Defaults.PENDING_DIR
+        for dirname in ('cur', 'new', 'tmp'):
+            os.makedirs(os.path.join(dirpath, dirname), mode=0o700,
+                        exist_ok=True)
 
 
     def _convert(self):
