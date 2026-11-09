@@ -13,6 +13,7 @@
 """Regression tests for Python 3 subprocess and pending file I/O."""
 
 import contextlib
+import dbm
 import io
 import os
 import pickle
@@ -51,6 +52,27 @@ class UtilityTests(unittest.TestCase):
             with open(path, 'wb') as fp:
                 fp.write(old_pickle)
             self.assertEqual(Util.unpickle(path), '\xff')
+
+
+    def test_dbm_autobuild_preserves_legacy_list_content(self):
+        from TMDA import Util
+        with tempfile.TemporaryDirectory() as directory:
+            filename = os.path.join(directory, 'whitelist')
+            with open(filename, 'w', encoding='ascii') as fp:
+                fp.write('sender@example.com accept\n')
+            previous_tempdir = tempfile.tempdir
+            self.assertEqual(Util.build_dbm(filename), 1)
+            self.assertEqual(tempfile.tempdir, previous_tempdir)
+            with dbm.open(filename + '.db', 'r') as database:
+                self.assertEqual(database[b'sender@example.com'], b'accept')
+
+    def test_pickle_writer_leaves_global_tempdir_unchanged(self):
+        from TMDA import Util
+        previous_tempdir = tempfile.tempdir
+        with tempfile.TemporaryDirectory() as directory:
+            Util.pickleit({'hello': 'world'},
+                          os.path.join(directory, 'cache'))
+        self.assertEqual(tempfile.tempdir, previous_tempdir)
 
     def test_pipecmd_writes_original_message_bytes(self):
         from TMDA import Util
