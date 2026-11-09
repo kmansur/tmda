@@ -134,5 +134,22 @@ class LocalPostfixDeliveryTests(unittest.TestCase):
         self._assert_delivered(subject)
 
 
+    def test_direct_smtp_rejects_unknown_local_recipient(self):
+        """An unknown local recipient must not appear as successful delivery."""
+        with self.config.open('a', encoding='utf-8') as stream:
+            stream.write(
+                'MAIL_TRANSPORT = "smtp"\n'
+                'SMTPHOST = "127.0.0.1:25"\n'
+                'SMTPSSL = False\n')
+        subject = 'TMDA Postfix rejected recipient %d' % os.getpid()
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT), 'tmda-ci-no-such-user@localhost'],
+            input=self._message(subject), cwd=ROOT, env=self.env,
+            capture_output=True, timeout=20)
+        self.assertNotEqual(
+            result.returncode, 0,
+            'Postfix incorrectly accepted an unknown local recipient')
+
+
 if __name__ == '__main__':
     unittest.main()
