@@ -31,7 +31,7 @@ import sys
 
 dbmfile = sys.argv[1]
 
-dbm = dbm.open(dbmfile,'r')
-for key in list(dbm.keys()):
-    print('%s %s' % (key, dbm[key]))
-dbm.close()
+with dbm.open(dbmfile, 'r') as database:
+    for key in database.keys():
+        print('%s %s' % (key.decode('latin-1'),
+                         database[key].decode('latin-1')))
