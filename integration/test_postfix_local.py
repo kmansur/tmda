@@ -53,6 +53,7 @@ class LocalPostfixDeliveryTests(unittest.TestCase):
             'USERNAME = "tmda-ci"\n'
             'HOSTNAME = "localhost"\n'
             'MAIL_TRANSFER_AGENT = "postfix"\n'
+            'DELIVERY = "_qok_"\n'
             'ACTION_OUTGOING = "bare"\n'
             'MAIL_TRANSPORT = "sendmail"\n'
             'SENDMAIL_PROGRAM = "/usr/sbin/sendmail"\n'
