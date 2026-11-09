@@ -76,7 +76,7 @@ class OriginalQueue(Queue):
         for msg in msgs:
             now = '%d' % time.time()
             min_time = int(now) - int(lifetimesecs)
-            msg_time = int(msg.split('.')[0])
+            msg_time = int(os.path.basename(msg).split('.')[0])
             if msg_time > min_time:
                 # skip this message
                 continue
