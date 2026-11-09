@@ -721,23 +721,28 @@ class FilterParser:
 
 
     def __search_cdb(self, pathname, keys, actions, source):
-        """
-        Search DJB's constant databases; see <http:/cr.yp.to/cdb.html>.
-        """
+        """Search DJB CDB files using legacy text or Python 3 byte keys."""
         import cdb
-        cdb = cdb.init(pathname)
+        database = cdb.init(pathname)
         found_match = 0
         for key in keys:
-            if key and key.lower() in cdb:
-                found_match = 1
-                cdb_value = cdb[key.lower()]
-                # If there is an entry for this key,
-                # we consider it an overriding action
-                # specification.
-                if cdb_value:
-                    actions.clear()
-                    actions.update(self.__buildactions(cdb_value, source))
-                break
+            if not key:
+                continue
+            normalized = key.lower()
+            lookup = normalized
+            if lookup not in database:
+                encoded = normalized.encode('latin-1')
+                if encoded not in database:
+                    continue
+                lookup = encoded
+            found_match = 1
+            value = database[lookup]
+            if value:
+                if isinstance(value, bytes):
+                    value = value.decode('latin-1')
+                actions.clear()
+                actions.update(self.__buildactions(value, source))
+            break
         return found_match
 
 
