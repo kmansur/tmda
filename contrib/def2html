@@ -43,10 +43,8 @@ class Variable:
         s += '\n'.join(self.blocks)
         return s
 
-    def __cmp__(self, other):
-        if isinstance(other, Variable):
-            return cmp(self.name, other.name)
-        return cmp(self.name, other)
+    def __lt__(self, other):
+        return self.name < (other.name if isinstance(other, Variable) else other)
 
 
 escapes = (('&', '&amp;'), ('<', '&lt;'), ('>', '&gt;'))
@@ -62,7 +60,7 @@ def looks_like_term(text):
     return 0
 
 def is_indented(text):
-    return text[0] == ' '
+    return bool(text) and text[0] == ' '
 
 def is_next_line_blank(idx, section):
     if idx+1 < len(section) and len(section[idx+1]) == 0:
@@ -233,7 +231,7 @@ if __name__ == "__main__":
 
 
     try:
-        (options, arguments) = getopt.getopt(sys.argv[1:], 'c', 'css')
+        (options, arguments) = getopt.getopt(sys.argv[1:], 'c', ['css'])
     except getopt.error as msg:
         usage(1, msg)
 
@@ -245,7 +243,7 @@ if __name__ == "__main__":
         try:
             fp = open(arguments[0])
         except IOError:
-            usage(2, 'Error: can\'t open input file "%s"', (arguments[0],))
+            usage(2, 'Error: can\'t open input file "%s"' % arguments[0])
     else:
         fp = io.StringIO(sys.stdin.read())
 
