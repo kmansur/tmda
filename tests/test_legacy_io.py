@@ -77,6 +77,27 @@ class UtilityTests(unittest.TestCase):
                 self.assertEqual(Util.build_cdb(path), 1)
         self.assertEqual(captured, [(b'sender@example.com', b'accept')])
 
+
+    def test_cdb_autobuild_retains_original_text_based_binding(self):
+        from TMDA import Util
+        captured = []
+        class Maker:
+            def add(self, key, value):
+                if not isinstance(key, str) or not isinstance(value, str):
+                    raise TypeError('original CDB extension expects strings')
+                captured.append((key, value))
+            def finish(self):
+                pass
+        stub = types.ModuleType('cdb')
+        stub.cdbmake = lambda final, tmp: Maker()
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'whitelist')
+            with open(path, 'w', encoding='ascii') as stream:
+                stream.write('Alice@example.com accept\n')
+            with patch.dict(sys.modules, {'cdb': stub}):
+                self.assertEqual(Util.build_cdb(path), 1)
+        self.assertEqual(captured, [('alice@example.com', 'accept')])
+
     def test_dbm_autobuild_preserves_legacy_list_content(self):
         from TMDA import Util
         with tempfile.TemporaryDirectory() as directory:
