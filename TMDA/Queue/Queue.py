@@ -27,8 +27,21 @@ seperated by a dot, e.g, "1159383896.4198".  This infomration
 currently comes from a timestamp and the Python process id.
 """
 
+import re
+
 from TMDA import Defaults
 from TMDA import Errors
+
+
+def validate_mailid(mailid):
+    """Require the historical timestamp.pid form for pending queue IDs.
+
+    Queue IDs can originate from command-line arguments. Reject path
+    separators and malformed IDs before accessing the filesystem.
+    """
+    if not isinstance(mailid, str) or not re.fullmatch(r'[0-9]+\.[0-9]+', mailid):
+        raise ValueError("Invalid pending queue message ID: %r" % (mailid,))
+    return mailid
 
 
 class Queue:
