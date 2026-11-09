@@ -350,3 +350,34 @@ are available or compatible in every FreeBSD Python environment.
 The Perl and shell contrib scripts do not need Python translation.
 The historical Python 2 email library remains in the source
 archive but is not installed or imported by the Python 3 package.
+
+Checkpassword, virtual users, and legacy filter storage
+----------------------------------------------------
+
+Auth.checkpassword fd 3 delivery now uses binary credentials and
+passes the descriptor to the child process without closing or
+reassigning open descriptors in the parent daemon. The original
+checkpassword exit status is preserved. The virtual-user lookup,
+configuration-directory lookup, and appended checkpassword program
+arguments are exercised independently by Python 3 unit tests.
+
+Legacy filter databases require Python 3 bytes compatibility.
+DBM and CDB lookups now decode stored action bytes as latin-1,
+while preserving their text-based TMDA action grammar. Mailman
+2.0 marshal and 2.1 pickle membership files are opened in binary
+mode; Python 2 pickle strings are loaded with reversible latin-1
+encoding, matching historic stored data. Pending queue caches
+likewise load Python 2 eight-bit pickle strings.
+
+The legacy DBM auto-builder and pickle cache writer no longer
+modify the global tempfile.tempdir setting. This prevents one
+mail operation from affecting temporary file creation in another,
+and fixes a regression revealed by running the complete test
+suite with temporary directories. Cache writes use a temporary
+file in the destination directory and preserve pickle protocol
+2 by default.
+
+These changes are compatibility and reliability corrections,
+not additional user-visible features. They do not constitute
+full production verification of optional third-party cdb,
+DNS or LDAP modules, or of original FreeBSD hosting setups.
