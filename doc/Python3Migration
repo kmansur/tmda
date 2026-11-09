@@ -235,3 +235,20 @@ The tests discovered and fixed a built-in list shadowing bug in the
 incoming filter and decoding failures when optional summary headers
 are absent. Further load, concurrency, cleanup and real-MTA
 integration testing is required before production use.
+
+Pending queue safety and expiration regression
+---------------------------------------------
+
+The OriginalQueue and MaildirQueue validate the historical
+numeric timestamp.pid identifier before using it in filesystem
+operations. This prevents paths supplied by CLI arguments from
+escaping PENDING_DIR through embedded separators or dot segments.
+
+Queue cleanup no longer changes the current working directory of
+the hosting process. Both formats are regression-tested to verify
+that expired messages are removed, recent messages are preserved,
+and the working directory remains unchanged.
+
+These checks run in the integration suite on Python 3.12, 3.13 and
+3.14. This is not yet a substitute for validating queue races,
+unexpected power loss, NFS storage or MTA interoperability.
