@@ -74,6 +74,62 @@ class FilterParserTests(unittest.TestCase):
                 'local@example.com', ['other@ex\xffmple.org'])
             self.assertEqual(actions.get('incoming', (None,))[0], 'accept')
 
+
+    def test_sql_select_with_unknown_rowcount_still_matches(self):
+        """DB-API permits rowcount -1 for a SELECT with returned rows."""
+        self.module.Defaults.USERNAME = 'alice'
+        self.module.Defaults.HOSTNAME = 'example.org'
+
+        class Cursor:
+            rowcount = -1
+            description = [('email',), ('action',)]
+            def execute(self, statement, params):
+                pass
+            def fetchall(self):
+                return [('sender@example.org', 'accept')]
+            def close(self):
+                pass
+
+        class DB:
+            def cursor(self):
+                return Cursor()
+
+        parser = self.module.FilterParser(DB())
+        actions = {'incoming': ('hold', None)}
+        found = parser._FilterParser__search_sql(
+            'SELECT email, action FROM rules',
+            {'action_column': 'action'},
+            ['sender@example.org'], actions, 'from-sql', 1)
+        self.assertEqual(found, 1)
+        self.assertEqual(actions['incoming'][0], 'accept')
+
+    def test_sql_empty_result_with_unknown_rowcount_does_not_match(self):
+        self.module.Defaults.USERNAME = 'alice'
+        self.module.Defaults.HOSTNAME = 'example.org'
+
+        class Cursor:
+            rowcount = -1
+            description = [('email',), ('action',)]
+            def execute(self, statement, params):
+                pass
+            def fetchall(self):
+                return []
+            def close(self):
+                pass
+
+        class DB:
+            def cursor(self):
+                return Cursor()
+
+        parser = self.module.FilterParser(DB())
+        actions = {'incoming': ('hold', None)}
+        found = parser._FilterParser__search_sql(
+            'SELECT email, action FROM rules',
+            {'action_column': 'action'},
+            ['sender@example.org'], actions, 'from-sql', 1)
+        self.assertEqual(found, 0)
+        self.assertEqual(actions['incoming'][0], 'hold')
+
     def test_cdb_python3_binary_keys_and_actions(self):
         database = {b'sender@example.com': b'accept'}
         stub = types.ModuleType('cdb')
