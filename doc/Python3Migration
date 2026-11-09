@@ -534,3 +534,19 @@ changed. The test suite simulates the absence of both modules
 and verifies correct plaintext acceptance and rejection, as
 well as explicit AuthError for encrypted-only files without a
 crypt backend.
+
+SQL filter DB-API SELECT compatibility
+------------------------------------
+
+Some supported Python DB-API 2.0 drivers report cursor.rowcount=-1
+after a SELECT, even when fetchall() returned matching rows.
+The original from-sql/to-sql matching code incorrectly interpreted
+this sentinel as an empty result set. It now checks the actual
+rows returned by fetchall(), preserving the existing action-column
+and wildcard filter syntax.
+
+Regression tests exercise both a matching SELECT and an empty
+SELECT with rowcount=-1, using isolated DB-API-compliant cursors.
+Actual network database drivers still need environment-specific
+testing; these tests do not establish MySQL/PostgreSQL backend
+compatibility on FreeBSD.
