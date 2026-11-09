@@ -345,5 +345,25 @@ class IncomingPendingTests(unittest.TestCase):
         self.assertTrue(messages[0].exists())
 
 
+    def test_legacy_pending_cache_hides_already_seen_messages(self):
+        held = self._run('tmda-rfilter', data=self._incoming_message())
+        self.assertIn(held.returncode, (0, 99),
+                      held.stderr.decode('utf-8', errors='replace'))
+        messages = list(self.pending.glob('*.msg'))
+        self.assertEqual(len(messages), 1)
+        mailid = messages[0].stem.encode('ascii')
+        first = self._run('tmda-pending', '-b', '-C', '-T')
+        self.assertEqual(first.returncode, 0,
+                         first.stderr.decode('utf-8', errors='replace'))
+        self.assertIn(mailid, first.stdout)
+        cache = self.home / '.tmda' / '.pendingcache'
+        self.assertTrue(cache.exists())
+        second = self._run('tmda-pending', '-b', '-C', '-T')
+        self.assertEqual(second.returncode, 0,
+                         second.stderr.decode('utf-8', errors='replace'))
+        self.assertNotIn(mailid, second.stdout)
+        self.assertTrue(messages[0].exists())
+
+
 if __name__ == '__main__':
     unittest.main()
