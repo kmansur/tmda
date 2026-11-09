@@ -20,6 +20,7 @@ import os
 import sys
 import tempfile
 import types
+import types
 import unittest
 from unittest.mock import patch
 
@@ -55,6 +56,19 @@ class FilterParserTests(unittest.TestCase):
             parser.read(path)
             self.assertEqual(len(parser.filterlist), 2)
 
+
+
+    def test_cdb_python3_binary_keys_and_actions(self):
+        database = {b'sender@example.com': b'accept'}
+        stub = types.ModuleType('cdb')
+        stub.init = lambda pathname: database
+        parser = self.module.FilterParser()
+        actions = {'incoming': ('hold', None)}
+        with patch.dict(sys.modules, {'cdb': stub}):
+            found = parser._FilterParser__search_cdb(
+                '/fake/list.cdb', ['SENDER@EXAMPLE.COM'], actions, 'from-cdb')
+        self.assertEqual(found, 1)
+        self.assertEqual(actions['incoming'][0], 'accept')
 
     def test_dbm_stored_action_uses_text_not_bytes(self):
         with tempfile.TemporaryDirectory() as directory:
