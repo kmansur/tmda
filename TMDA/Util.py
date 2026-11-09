@@ -719,10 +719,11 @@ def build_dbm(filename):
             dbm[key] = value
         dbm.close()
         for f in glob.glob(tmpname + '*'):
-            (tmppath, tmpname) = os.path.split(tmpname)
-            newf = f.replace(tmpname, dbmname)
-            newf = os.path.join(tmppath, newf)
-            os.rename(f, newf)
+            # DBM backends may create a single file or a .dir/.pag
+            # pair. Keep the temporary basename stable for all files.
+            suffix = f[len(tmpname):]
+            newf = os.path.join(dbmpath, dbmname + suffix)
+            os.replace(f, newf)
     except:
         return 0
     else:
