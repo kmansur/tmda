@@ -550,3 +550,23 @@ SELECT with rowcount=-1, using isolated DB-API-compliant cursors.
 Actual network database drivers still need environment-specific
 testing; these tests do not establish MySQL/PostgreSQL backend
 compatibility on FreeBSD.
+
+Legacy CDB and Unix DBM auto-builder compatibility
+--------------------------------------------------
+
+The original -autocdb database builder now passes reversible latin-1
+encoded byte keys and values to Python 3 CDB bindings that require
+bytes, while retaining a fallback for historical text-oriented
+CDB bindings. Both binding interfaces are simulated by regression
+tests, including case normalization and action preservation.
+
+The original -autodbm builder now keeps the temporary base filename
+unchanged when renaming backend output files. Unix DBM variants may
+create two sidecars (.dir and .pag) rather than a single database
+file. A regression test simulates both files and confirms the
+renamed output contains each sidecar. This is a format-compatibility
+correction, not a new database backend.
+
+These unit tests cover the expected API contracts; native CDB and
+FreeBSD ndbm implementations still need validation on FreeBSD
+before declaring optional backend parity complete.
