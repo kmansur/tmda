@@ -40,7 +40,7 @@ import time
 
 from TMDA import Defaults
 from TMDA import Util
-from TMDA.Queue.Queue import Queue
+from TMDA.Queue.Queue import Queue, validate_mailid
 
 
 
@@ -71,10 +71,7 @@ class OriginalQueue(Queue):
             return
         
         lifetimesecs = Util.seconds(Defaults.PENDING_LIFETIME)
-        cwd = os.getcwd()
-        os.chdir(Defaults.PENDING_DIR)
-        msgs = glob.glob('*.*.msg')
-        os.chdir(cwd)
+        msgs = glob.glob(os.path.join(Defaults.PENDING_DIR, '*.*.msg'))
 
         for msg in msgs:
             now = '%d' % time.time()
@@ -84,7 +81,7 @@ class OriginalQueue(Queue):
                 # skip this message
                 continue
             # delete this message
-            fpath = os.path.join(Defaults.PENDING_DIR, msg)
+            fpath = msg
             if Defaults.PENDING_DELETE_APPEND:
                 try:
                     with open(fpath, 'r', encoding='latin-1') as fp:
@@ -108,6 +105,7 @@ class OriginalQueue(Queue):
 
 
     def insert_message(self, msg, mailid, recipient):
+        validate_mailid(mailid)
         fname = mailid + ".msg"
         # Create ~/.tmda/ and friends if necessary.
         self._create()
@@ -124,17 +122,20 @@ class OriginalQueue(Queue):
 
 
     def fetch_message(self, mailid, fullParse=False):
+        validate_mailid(mailid)
         fpath = os.path.join(Defaults.PENDING_DIR, mailid + '.msg')
         with open(fpath, 'r', encoding='latin-1') as fp:
             return Util.msg_from_file(fp, fullParse=fullParse)
 
 
     def delete_message(self, mailid):
+        validate_mailid(mailid)
         fpath = os.path.join(Defaults.PENDING_DIR, mailid + '.msg')
         os.unlink(fpath)
 
 
     def find_message(self, mailid):
+        validate_mailid(mailid)
         fpath = os.path.join(Defaults.PENDING_DIR, mailid + '.msg')
         if os.path.exists(fpath):
             return True
