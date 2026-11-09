@@ -449,3 +449,16 @@ the first batch listing displays a pending ID, a repeat listing
 suppresses that already-seen ID, and the underlying pending
 message remains intact. The tests run independently on Python
 3.12, 3.13 and 3.14.
+
+Legacy address-list stream lifetime
+-----------------------------------
+
+The existing list utilities file_to_dict, file_to_list and
+append_to_file retain their original parsing, case-folding and
+duplicate-avoidance conventions. Their Python 3 implementations
+now close fileinput readers after each invocation, including
+early returns on duplicate entries. This prevents the next list
+operation in the same long-lived process from inheriting an active
+fileinput reader. Regression coverage exercises repeated list
+loads, consecutive confirmation append operations and duplicate
+entries without altering the original on-disk list format.
