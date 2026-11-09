@@ -60,7 +60,8 @@ class DefaultsTests(unittest.TestCase):
                 'username = alice\n'
                 'hostname = example.org\n'
                 'fullname = Quoted "Name" and backslash \\ character\n'
-                'max_autoresponses_per_day = 1\n',
+                'max_autoresponses_per_day = 1\n'
+                'logfile_incoming = \n',
                 encoding='utf-8')
             env = os.environ.copy()
             env.update({
@@ -75,7 +76,8 @@ class DefaultsTests(unittest.TestCase):
                 "assert d['USERNAME'] == 'alice'; "
                 "assert d['HOSTNAME'] == 'example.org'; "
                 "assert d['FULLNAME'] == 'Quoted \"Name\" and backslash \\\\ character'; "
-                "assert d['MAX_AUTORESPONSES_PER_DAY'] == 1"
+                "assert d['MAX_AUTORESPONSES_PER_DAY'] == 1; "
+                "assert d['LOGFILE_INCOMING'] == ''"
             )
             result = subprocess.run(
                 [sys.executable, '-c', code], cwd=ROOT, env=env,
