@@ -68,11 +68,11 @@ class UtilityTests(unittest.TestCase):
 
     def test_pickle_writer_leaves_global_tempdir_unchanged(self):
         from TMDA import Util
-        previous_tempdir = tempfile.tempdir
         with tempfile.TemporaryDirectory() as directory:
+            previous_tempdir = tempfile.tempdir
             Util.pickleit({'hello': 'world'},
                           os.path.join(directory, 'cache'))
-        self.assertEqual(tempfile.tempdir, previous_tempdir)
+            self.assertEqual(tempfile.tempdir, previous_tempdir)
 
     def test_pipecmd_writes_original_message_bytes(self):
         from TMDA import Util
