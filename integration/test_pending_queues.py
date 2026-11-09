@@ -110,6 +110,38 @@ class PendingQueueTests(unittest.TestCase):
                 fetched = queue.fetch_message('1700000000.123')
                 self.assertIn('A\xffB', fetched.get_payload())
 
+
+    def test_reject_unsafe_message_ids(self):
+        for queue_class in (self.OriginalQueue, self.MaildirQueue):
+            with self.subTest(queue=queue_class.__name__):
+                self.defaults.PENDING_DIR = str(
+                    pathlib.Path(self.tmp.name) / queue_class.__name__)
+                queue = queue_class()
+                queue._create()
+                for mailid in ('../outside', '../../outside', '123/456',
+                               'not-a-mail-id', '123.456/../outside'):
+                    with self.subTest(mailid=mailid):
+                        with self.assertRaises(ValueError):
+                            queue.fetch_message(mailid)
+                        with self.assertRaises(ValueError):
+                            queue.delete_message(mailid)
+                        with self.assertRaises(ValueError):
+                            queue.find_message(mailid)
+                        with self.assertRaises(ValueError):
+                            queue.insert_message(
+                                self._message(), mailid, 'bob@example.com')
+
+    def test_cleanup_preserves_working_directory(self):
+        for queue_class in (self.OriginalQueue, self.MaildirQueue):
+            with self.subTest(queue=queue_class.__name__):
+                self.defaults.PENDING_DIR = str(
+                    pathlib.Path(self.tmp.name) / queue_class.__name__)
+                queue = queue_class()
+                queue._create()
+                cwd = os.getcwd()
+                queue.cleanup()
+                self.assertEqual(os.getcwd(), cwd)
+
     def test_maildir_missing_id_reports_requested_id(self):
         queue = self.MaildirQueue()
         queue._create()
