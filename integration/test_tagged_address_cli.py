@@ -72,8 +72,18 @@ class TaggedAddressCLITests(unittest.TestCase):
         self.assertNotIn('STATUS: VALID', rejected.stdout)
 
     def test_dated_address_cli_expired_cookie(self):
-        expired = self._run('tmda-check-address',
-                            'alice-dated-1000000000.000000@invalid.example')
+        generated = subprocess.run(
+            [sys.executable, '-c',
+             'from TMDA import Cookie; '
+             'print(Cookie.make_dated_cookie("1000000000", "1d"))'],
+            cwd=ROOT, env=self.env, capture_output=True, text=True,
+            timeout=10)
+        self.assertEqual(generated.returncode, 0, generated.stderr)
+        address = ('alice-dated-' + generated.stdout.strip() +
+                   '@example.com')
+        expired = self._run('tmda-check-address', address)
+        self.assertEqual(expired.returncode, 0, expired.stderr)
+        self.assertIn('EXPIRED:', expired.stdout)
         self.assertNotIn('STATUS: VALID', expired.stdout)
 
     def test_dated_address_cli_round_trip(self):
