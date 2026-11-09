@@ -855,7 +855,9 @@ class FilterParser:
         try:
             cursor.execute(selectstmt, params)
             rows = cursor.fetchall()
-            if cursor.rowcount <= 0:
+            # Some DB-API 2.0 adapters report rowcount=-1 for SELECT,
+            # even when fetchall() returned matching rows.
+            if not rows:
                 return 0
             if 'wildcards' in args:
                 if len(cursor.description) > 1:
