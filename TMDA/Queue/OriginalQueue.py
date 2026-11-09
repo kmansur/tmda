@@ -36,6 +36,7 @@ from email.utils import parseaddr
 
 import glob
 import os
+import tempfile
 import time
 
 from TMDA import Defaults
@@ -105,20 +106,36 @@ class OriginalQueue(Queue):
 
 
     def insert_message(self, msg, mailid, recipient):
+        """Atomically publish a fully written message under its legacy ID."""
         validate_mailid(mailid)
-        fname = mailid + ".msg"
-        # Create ~/.tmda/ and friends if necessary.
         self._create()
-        # X-TMDA-Recipient is used by release_pending()
-        del msg['X-TMDA-Recipient']
-        msg['X-TMDA-Recipient'] = recipient
-        # Write ~/.tmda/pending/MAILID.msg
-        fcontents = Util.msg_as_string(msg)
-        fpath = os.path.join(Defaults.PENDING_DIR, fname)
-        with open(fpath, 'xb') as fp:
-            fp.write(fcontents.encode('latin-1') if isinstance(fcontents, str)
-                     else fcontents)
-        del msg['X-TMDA-Recipient']
+        fpath = os.path.join(Defaults.PENDING_DIR, mailid + '.msg')
+        original_headers = msg.get_all('X-TMDA-Recipient', [])
+        temporary = None
+        try:
+            del msg['X-TMDA-Recipient']
+            msg['X-TMDA-Recipient'] = recipient
+            contents = Util.msg_as_string(msg)
+            if isinstance(contents, str):
+                contents = contents.encode('latin-1')
+            fd, temporary = tempfile.mkstemp(
+                prefix='.tmda-', suffix='.tmp', dir=Defaults.PENDING_DIR)
+            with os.fdopen(fd, 'wb') as fp:
+                fp.write(contents)
+                fp.flush()
+                os.fsync(fp.fileno())
+            # Hard-link creation refuses an existing destination. Readers
+            # never observe a partially written *.msg file.
+            os.link(temporary, fpath)
+        finally:
+            if temporary is not None:
+                try:
+                    os.unlink(temporary)
+                except FileNotFoundError:
+                    pass
+            del msg['X-TMDA-Recipient']
+            for value in original_headers:
+                msg['X-TMDA-Recipient'] = value
 
 
     def fetch_message(self, mailid, fullParse=False):
