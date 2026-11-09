@@ -74,6 +74,33 @@ class UtilityTests(unittest.TestCase):
                           os.path.join(directory, 'cache'))
             self.assertEqual(tempfile.tempdir, previous_tempdir)
 
+
+    def test_legacy_list_readers_can_run_repeatedly(self):
+        from TMDA import Util
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'whitelist')
+            with open(path, 'w', encoding='ascii') as stream:
+                stream.write('# comment\nALICE@example.com accept\n')
+            for _ in range(3):
+                self.assertEqual(
+                    Util.file_to_list(path), ['ALICE@example.com accept'])
+                self.assertEqual(
+                    Util.file_to_dict(path, {}), {'alice@example.com': 'accept'})
+
+    def test_legacy_list_append_deduplicates_and_closes_fileinput(self):
+        from TMDA import Util
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'whitelist')
+            with open(path, 'w', encoding='ascii') as stream:
+                stream.write('# comment\nALICE@example.com\n')
+            self.assertEqual(Util.append_to_file('alice@example.com', path), 0)
+            for _ in range(3):
+                Util.append_to_file('bob@example.com', path)
+                self.assertIn('bob@example.com', Util.file_to_list(path))
+            self.assertEqual(
+                Util.file_to_list(path),
+                ['ALICE@example.com', 'bob@example.com'])
+
     def test_pipecmd_writes_original_message_bytes(self):
         from TMDA import Util
         code = ('import sys; data=sys.stdin.buffer.read(); '
