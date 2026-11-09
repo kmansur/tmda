@@ -33,7 +33,7 @@ jobs:
           sudo postconf -e 'relayhost ='
           sudo postconf -e 'default_transport = error:External delivery disabled during CI'
           sudo postfix check
-          sudo postfix start
+          sudo postfix reload || sudo postfix start
       - name: Run real local Postfix delivery tests
         env:
           TMDA_TEST_LOCAL_POSTFIX: '1'
