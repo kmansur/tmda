@@ -96,5 +96,40 @@ class IncomingPendingTests(unittest.TestCase):
         self.assertFalse(saved[0].exists())
 
 
+    def test_hold_then_release_into_local_capture(self):
+        fake_sendmail = self.home / 'fake-sendmail'
+        capture = self.home / 'released.eml'
+        fake_sendmail.write_text(
+            '#!' + sys.executable + '\n'
+            'import os, sys\n'
+            'with open(os.environ["TMDA_TEST_RELEASE"], "wb") as stream:\n'
+            '    stream.write(sys.stdin.buffer.read())\n',
+            encoding='utf-8')
+        fake_sendmail.chmod(0o700)
+        config = pathlib.Path(self.env['TMDARC'])
+        with config.open('a', encoding='utf-8') as stream:
+            stream.write(
+                'MAIL_TRANSPORT = "sendmail"\n'
+                'SENDMAIL_PROGRAM = ' + repr(str(fake_sendmail)) + '\n')
+        self.env['TMDA_TEST_RELEASE'] = str(capture)
+
+        filtered = self._run('tmda-rfilter', data=self._incoming_message())
+        self.assertIn(filtered.returncode, (0, 99), filtered.stderr.decode(
+            'utf-8', errors='replace'))
+        saved = list(self.pending.glob('*.msg'))
+        self.assertEqual(len(saved), 1)
+        mailid = saved[0].stem
+
+        released = self._run('tmda-pending', '-b', '-r', mailid)
+        self.assertEqual(released.returncode, 0, released.stderr.decode(
+            'utf-8', errors='replace'))
+        self.assertTrue(capture.exists())
+        outgoing = capture.read_bytes()
+        self.assertIn(b'X-TMDA-Confirm-Done:', outgoing)
+        self.assertIn(b'X-TMDA-Released:', outgoing)
+        self.assertIn(b'Preserve original message body.', outgoing)
+        self.assertNotIn(b'X-TMDA-Recipient:', outgoing)
+
+
 if __name__ == '__main__':
     unittest.main()
