@@ -43,7 +43,7 @@ from TMDA import Version
 program = sys.argv[0]
 header_recipients = None
 execdir = os.path.dirname(os.path.abspath(program))
-arglist = ['']
+arglist = [os.path.join(execdir, 'tmda-inject')]
 
 def usage(code, msg=''):
     print(__doc__ % globals())
