@@ -272,5 +272,52 @@ class IncomingPendingTests(unittest.TestCase):
 
 
 
+    def test_autoresponse_rate_limit_and_expired_record_cleanup(self):
+        """Original rate limiting records must not alter relative mail paths."""
+        import time
+
+        response_dir = self.home / '.tmda' / 'responses'
+        response_dir.mkdir()
+        old_record = response_dir / '1000000000.999.sender@example.net'
+        old_record.write_text('', encoding='ascii')
+
+        self.incoming.write_text('from * confirm\n', encoding='ascii')
+        fake_sendmail = self.home / 'fake-rate-sendmail'
+        deliveries = self.home / 'outgoing-count'
+        fake_sendmail.write_text(
+            '#!' + sys.executable + '\n'
+            'import os, pathlib, sys\n'
+            'sys.stdin.buffer.read()\n'
+            'path = pathlib.Path(os.environ["TMDA_TEST_COUNTER"])\n'
+            'with path.open("a", encoding="ascii") as stream:\n'
+            '    stream.write("1\\n")\n',
+            encoding='ascii')
+        fake_sendmail.chmod(0o700)
+        with pathlib.Path(self.env['TMDARC']).open(
+                'a', encoding='utf-8') as stream:
+            stream.write(
+                'MAIL_TRANSPORT = "sendmail"\n'
+                'SENDMAIL_PROGRAM = ' + repr(str(fake_sendmail)) + '\n'
+                'TEMPLATE_DIR = ' + repr(str(ROOT / 'templates')) + '\n'
+                'RESPONSE_DIR = ' + repr(str(response_dir)) + '\n'
+                'MAX_AUTORESPONSES_PER_DAY = 1\n'
+                'AUTORESPONSE_INCLUDE_SENDER_COPY = 0\n')
+        self.env['TMDA_TEST_COUNTER'] = str(deliveries)
+
+        first = self._run('tmda-rfilter', data=self._incoming_message())
+        self.assertIn(first.returncode, (0, 99),
+                      first.stderr.decode('utf-8', errors='replace'))
+        self.assertFalse(old_record.exists())
+        self.assertTrue(deliveries.exists())
+        self.assertEqual(len(deliveries.read_text().splitlines()), 1)
+        self.assertEqual(len(list(response_dir.iterdir())), 1)
+
+        second = self._run('tmda-rfilter', data=self._incoming_message())
+        self.assertIn(second.returncode, (0, 99),
+                      second.stderr.decode('utf-8', errors='replace'))
+        self.assertEqual(len(deliveries.read_text().splitlines()), 1)
+        self.assertEqual(len(list(response_dir.iterdir())), 1)
+
+
 if __name__ == '__main__':
     unittest.main()
