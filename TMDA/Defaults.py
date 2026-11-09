@@ -106,7 +106,7 @@ if os.path.exists(TMDARC):
             value = cf.get(cf_section, option)
             option = option.upper()
             # Translate options into variables.
-            if value in string.digits:
+            if len(value) == 1 and value in string.digits:
                 # Preserve the original single-digit integer convention.
                 vars()[option] = int(value)
             else:
