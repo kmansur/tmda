@@ -182,6 +182,25 @@ class PendingQueueTests(unittest.TestCase):
                         list((pathlib.Path(self.defaults.PENDING_DIR) / 'tmp').iterdir()),
                         [])
 
+
+    def test_publish_failure_cleans_temporary_file(self):
+        for queue_class in (self.OriginalQueue, self.MaildirQueue):
+            with self.subTest(queue=queue_class.__name__):
+                self.defaults.PENDING_DIR = str(
+                    pathlib.Path(self.tmp.name) / queue_class.__name__)
+                queue = queue_class()
+                message = self._message()
+                with patch('os.link', side_effect=OSError('simulated publish failure')):
+                    with self.assertRaises((OSError, IOError, Errors.DeliveryError)):
+                        queue.insert_message(message, '1700000000.123',
+                                             'bob@example.com')
+                self.assertEqual(queue.fetch_ids(), [])
+                self.assertIsNone(message.get('X-TMDA-Recipient'))
+                root = pathlib.Path(self.defaults.PENDING_DIR)
+                for folder in (root, root / 'tmp'):
+                    if folder.is_dir():
+                        self.assertFalse(list(folder.glob('.tmda-*.tmp')))
+
     def test_concurrent_insert_same_id_never_overwrites_message(self):
         for queue_class in (self.OriginalQueue, self.MaildirQueue):
             with self.subTest(queue=queue_class.__name__):
