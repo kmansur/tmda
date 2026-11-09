@@ -119,6 +119,85 @@ class AuthenticationTests(unittest.TestCase):
             self.assertEqual(self.auth._Auth__pipefd3(
                 sys.executable + ' ' + str(script), b'no-match\0'), 7)
 
+
+    def test_original_remote_imap_and_imaps_login_paths(self):
+        auth = self.auth
+        auth.debug = lambda message: None
+        auth._Auth__defaultauthports = {'imap': 143, 'imaps': 993}
+        auth._Auth__localip = '127.0.0.1'
+
+        class FakeIMAP:
+            def __init__(self, host, port):
+                self.host, self.port = host, port
+            def login(self, user, password):
+                return ('OK', [b'logged in']) if (
+                    user == 'alice' and password == 'secret'
+                ) else ('NO', [])
+            def logout(self):
+                return ('BYE', [])
+
+        for protocol, port in (('imap', 143), ('imaps', 993)):
+            with self.subTest(protocol=protocol):
+                auth._Auth__authremote = {
+                    'proto': protocol, 'host': '127.0.0.1', 'port': port}
+                target = ('TMDA.Auth.imaplib.IMAP4_SSL' if protocol == 'imaps'
+                          else 'TMDA.Auth.imaplib.IMAP4')
+                with patch(target, FakeIMAP):
+                    self.assertTrue(auth.authenticate_plain_remote(
+                        'alice', 'secret'))
+                    self.assertFalse(auth.authenticate_plain_remote(
+                        'alice', 'wrong'))
+
+    def test_original_remote_pop3_and_apop_login_paths(self):
+        auth = self.auth
+        auth.debug = lambda message: None
+        auth._Auth__defaultauthports = {'pop3': 110, 'apop': 110}
+        auth._Auth__localip = '127.0.0.1'
+
+        class FakePOP3:
+            def __init__(self, host, port):
+                self.user_name = None
+            def user(self, user):
+                self.user_name = user
+            def pass_(self, password):
+                if password != 'secret':
+                    raise ValueError('bad password')
+            def apop(self, user, password):
+                if password != 'secret':
+                    raise ValueError('bad password')
+            def quit(self):
+                return b'+OK'
+
+        for protocol in ('pop3', 'apop'):
+            with self.subTest(protocol=protocol):
+                auth._Auth__authremote = {
+                    'proto': protocol, 'host': '127.0.0.1', 'port': 110}
+                with patch('TMDA.Auth.poplib.POP3', FakePOP3):
+                    self.assertTrue(auth.authenticate_plain_remote(
+                        'alice', 'secret'))
+
+    def test_original_remote_ldap_simple_bind_path(self):
+        auth = self.auth
+        auth.debug = lambda message: None
+        auth._Auth__defaultauthports = {'ldap': 389}
+        auth._Auth__localip = '127.0.0.1'
+        auth._Auth__authremote = {
+            'proto': 'ldap', 'host': '127.0.0.1', 'port': 389,
+            'dn': 'uid=%(user)s,dc=example,dc=org'}
+
+        bindings = []
+        class FakeLDAPConnection:
+            def simple_bind_s(self, dn, password):
+                bindings.append((dn, password))
+            def unbind_s(self):
+                pass
+        ldap = types.ModuleType('ldap')
+        ldap.initialize = lambda address: FakeLDAPConnection()
+        with patch.dict('sys.modules', {'ldap': ldap}):
+            self.assertTrue(auth.authenticate_plain_remote('alice', 'secret'))
+        self.assertEqual(bindings, [
+            ('uid=alice,dc=example,dc=org', 'secret')])
+
     def test_cram_md5_legacy_digest(self):
         self.auth.supports_cram_md5 = lambda: True
         self.auth._Auth__update_authdict = lambda: None
