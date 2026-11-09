@@ -274,3 +274,23 @@ single-host, local-only test configuration. They do not validate
 internet-facing SMTP, authenticated relay, anti-spam policy,
 production mailbox permissions, FreeBSD/Postfix or throughput under
 load. This branch must not be deployed to production yet.
+
+Postfix end-to-end incoming confirmation
+---------------------------------------
+
+The same local-only Postfix CI scenario now exercises receiving
+an incoming message through tmda-rfilter, holding it in the
+OriginalQueue, and releasing it using tmda-pending. The released
+message is confirmed to reach the disposable local Postfix mailbox
+with its binary attachment intact.
+
+A separate SMTP delivery test attempts an unknown local recipient
+and requires TMDA to propagate Postfix's recipient rejection instead
+of reporting success. These integration cases run on Python 3.12,
+3.13 and 3.14.
+
+Postfix remains configured with loopback-only listeners, local
+recipient delivery and disabled external default transport throughout
+these CI tests. This adds real-MTA integration evidence but does not
+replace staging tests for a production FreeBSD/Postfix deployment,
+authenticated relaying, timeouts, mail queue recovery and concurrency.
