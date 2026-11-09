@@ -963,8 +963,9 @@ class FilterParser:
                 try:
                     # See ezmlm(5) for dir/subscribers format.
                     for file in os.listdir(match):
-                        fp = open(os.path.join(match, file), 'r')
-                        subs = fp.read().split('\x00')
+                        with open(os.path.join(match, file), 'r',
+                                  encoding='latin-1') as fp:
+                            subs = fp.read().split('\x00')
                         for sub in subs:
                             if sub:
                                 ezmlm_list.append(sub.split('T', 1)[1].lower())
