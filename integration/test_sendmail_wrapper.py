@@ -43,9 +43,11 @@ class SendmailWrapperTests(unittest.TestCase):
         self.inject.chmod(0o700)
 
     def _run(self, *args):
+        env = os.environ.copy()
+        env['PYTHONPATH'] = str(ROOT) + os.pathsep + env.get('PYTHONPATH', '')
         return subprocess.run(
             [sys.executable, str(self.wrapper), *args],
-            cwd=ROOT, capture_output=True, text=True,
+            cwd=ROOT, env=env, capture_output=True, text=True,
             timeout=10)
 
     def test_explicit_recipients_pass_to_original_inject(self):
