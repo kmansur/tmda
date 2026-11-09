@@ -1,0 +1,48 @@
+name: Python 3 Postfix local delivery integration
+
+on:
+  push:
+    branches:
+      - feature/python3-migration
+  pull_request:
+
+jobs:
+  postfix-local:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install a disposable local-only Postfix MTA
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          echo "postfix postfix/main_mailer_type select Local only" | sudo debconf-set-selections
+          echo "postfix postfix/mailname string localhost.localdomain" | sudo debconf-set-selections
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postfix
+          sudo useradd -m -s /usr/sbin/nologin tmda-ci
+          sudo postconf -e 'inet_interfaces = loopback-only'
+          sudo postconf -e 'mydestination = localhost, localhost.localdomain'
+          sudo postconf -e 'mynetworks = 127.0.0.0/8'
+          sudo postconf -e 'relayhost ='
+          sudo postconf -e 'default_transport = error:External delivery disabled during CI'
+          sudo postfix check
+          sudo postfix start
+      - name: Run real local Postfix delivery tests
+        env:
+          TMDA_TEST_LOCAL_POSTFIX: '1'
+        run: python -m unittest -v integration.test_postfix_local
+      - name: Show local Postfix diagnostics if a test fails
+        if: failure()
+        run: |
+          sudo postqueue -p || true
+          sudo tail -100 /var/log/mail.log || true
+      - name: Stop disposable Postfix
+        if: always()
+        run: sudo postfix stop || true
