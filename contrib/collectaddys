@@ -35,6 +35,7 @@ $ collectaddys > ~/.tmda/lists/whitelist
 
 import mailbox
 import os
+from email.utils import parseaddr
 
 # Collect addresses from these headers only; season to taste.
 hdrs = [ 'from', 'return-path', 'sender' ]
@@ -42,30 +43,24 @@ hdrs = [ 'from', 'return-path', 'sender' ]
 uniq = {}
 
 for path in os.listdir('.'):
-    # If it's a directory, try to guess whether it's a Maildir or an
-    # MH folder.
     if os.path.isdir(path):
-        if os.path.isdir(os.path.join(path, 'cur')) and \
-           os.path.isdir(os.path.join(path, 'new')) and \
-           os.path.isdir(os.path.join(path, 'tmp')):
-            mb = mailbox.Maildir(path)
+        if all(os.path.isdir(os.path.join(path, section))
+               for section in ('cur', 'new', 'tmp')):
+            mb = mailbox.Maildir(path, create=False)
         else:
-            mb = mailbox.MHMailbox(path)
-    # Otherwise assume a Unix-style mbox file.
+            mb = mailbox.MH(path, create=False)
     else:
-        mb = mailbox.PortableUnixMailbox(open(path))
-    while 1:
-        msg = next(mb)
-        if not msg:
-            break
-        else:
+        mb = mailbox.mbox(path, create=False)
+    try:
+        for msg in mb:
             for hdr in hdrs:
                 if hdr in msg:
-                    address = msg.getaddr(hdr)[1]
-                    if address is not None:
-                        address = address.lower()
-                        uniq[address] = address
-                    
-for a in list(uniq.keys()):
+                    address = parseaddr(msg.get(hdr))[1]
+                    if address:
+                        uniq[address.lower()] = address.lower()
+    finally:
+        mb.close()
+
+for a in uniq:
     if a:
         print(a)
