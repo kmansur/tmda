@@ -305,32 +305,34 @@ def make_date(timesecs=None):
 
 def file_to_dict(file, dict):
     """Process and add then each line of a textfile to a dictionary."""
-    for line in fileinput.input(file):
-        line = line.strip()
-        # Comment or blank line?
-        if line == '' or line[0] in '#':
-            continue
-        else:
-            fields = line.split()
-            key = fields[0]
-            key = key.lower()
-            value = fields[1]
-            dict[key] = value
+    with fileinput.input(file) as lines:
+        for line in lines:
+            line = line.strip()
+            # Comment or blank line?
+            if line == '' or line[0] in '#':
+                continue
+            else:
+                fields = line.split()
+                key = fields[0]
+                key = key.lower()
+                value = fields[1]
+                dict[key] = value
     return dict
 
 
 def file_to_list(file):
     """Process and then append each line of file to list."""
-    list = []
-    for line in fileinput.input(file):
-        line = line.strip()
-        # Comment or blank line?
-        if line == '' or line[0] in '#':
-            continue
-        else:
-            line = line.expandtabs().split('#')[0].strip()
-            list.append(line)
-    return list
+    result = []
+    with fileinput.input(file) as lines:
+        for line in lines:
+            line = line.strip()
+            # Comment or blank line?
+            if line == '' or line[0] in '#':
+                continue
+            else:
+                line = line.expandtabs().split('#')[0].strip()
+                result.append(line)
+    return result
 
 
 def pipecmd(command, *strings):
@@ -376,20 +378,19 @@ def writefile(contents, fullpathname):
 def append_to_file(str, fullpathname):
     """Append a string to a text file if it isn't already in there."""
     if os.path.exists(fullpathname):
-        for line in fileinput.input(fullpathname):
-            line = line.strip().lower()
-            # Comment or blank line?
-            if line == '' or line[0] in '#':
-                continue
-            else:
-                line = line.expandtabs().split('#')[0].strip()
-                bare = str.expandtabs().split('#')[0].strip()
-                if bare.lower() == line:
-                    fileinput.close()
-                    return 0
-    file = open(fullpathname, 'a+')
-    file.write(str.strip() + '\n')
-    file.close()
+        with fileinput.input(fullpathname) as lines:
+            for line in lines:
+                line = line.strip().lower()
+                # Comment or blank line?
+                if line == '' or line[0] in '#':
+                    continue
+                else:
+                    line = line.expandtabs().split('#')[0].strip()
+                    bare = str.expandtabs().split('#')[0].strip()
+                    if bare.lower() == line:
+                        return 0
+    with open(fullpathname, 'a+') as file:
+        file.write(str.strip() + '\n')
 
 
 def pager(str):
