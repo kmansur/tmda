@@ -128,7 +128,7 @@ class Auth(Util.Debugable):
         self.__use_confdir = 0
         self.__use_vhome = 0
         if vlookupscript is not None:
-            self.setup_vuser( vlookupscript, vdomainfile )
+            self.setup_vuser( vlookupscript )
         elif configdir is not None:
             self.setup_configdir( configdir )
 
@@ -217,7 +217,7 @@ class Auth(Util.Debugable):
         except IOError:
             raise ValueError("'%s' does not exist" % realprogram)
         self.__authtype = 'checkpw'
-        self.__authprog = "%s %s" % (checkpw, args)
+        self.__authprog = "%s %s" % (realprogram, args)
         self.debug( "Auth program is '%s'" % self.__authprog )
 
     def init_remote(self, URI):
@@ -337,18 +337,18 @@ class Auth(Util.Debugable):
         self.__use_confdir = 1
         self.__use_vhome = 0
 
-    def get_homedir( username, domain = None ):
-        if self.__use_configdir:
+    def get_homedir(self, username, domain = None):
+        if self.__use_confdir:
             return os.path.join( os.path.expanduser(self.__configdir), \
                                  username )
         elif self.__use_vhome:
             if domain is None:
                 raise ValueError("domain is requined for virtual users")
-            return Util.getvuserhomedir(user, domain, self.__vlookupscript)
+            return Util.getvuserhomedir(username, domain, self.__vlookupscript)
         else:
             return Util.gethomedir( username )
 
-    def get_tmdadir( username, domain = None ):
+    def get_tmdadir(self, username, domain = None):
         return os.path.join( self.get_homedir( username, domain ), \
                              self.__default_tmda_dir )
 
