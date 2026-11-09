@@ -58,6 +58,22 @@ class FilterParserTests(unittest.TestCase):
 
 
 
+
+    def test_ezmlm_subscriber_bytes_use_legacy_encoding(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = pathlib.Path(directory) / 'subscribers'
+            folder.mkdir()
+            (folder / 'records').write_bytes(
+                b'Tsender@example.com\0Tother@ex\xffmple.org\0')
+            parser = self.module.FilterParser()
+            parser.filterlist = [
+                ('from-ezmlm', {}, directory,
+                 {'incoming': ('accept', None)}, 1),
+            ]
+            actions, _ = parser.firstmatch(
+                'local@example.com', ['other@ex\xffmple.org'])
+            self.assertEqual(actions.get('incoming', (None,))[0], 'accept')
+
     def test_cdb_python3_binary_keys_and_actions(self):
         database = {b'sender@example.com': b'accept'}
         stub = types.ModuleType('cdb')
