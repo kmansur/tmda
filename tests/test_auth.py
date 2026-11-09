@@ -75,6 +75,16 @@ class AuthenticationTests(unittest.TestCase):
             with self.assertRaises(Errors.AuthError):
                 auth.authenticate_plain_file('alice', 'original-secret')
 
+
+    def test_original_eight_bit_password_file_is_reversible(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'tmdauth')
+            with open(path, 'wb') as stream:
+                stream.write(b'alice:pass\xffword\n')
+            self.assertEqual(
+                self.auth._Auth__authfile2dict(path),
+                {'alice': 'pass\xffword'})
+
     def test_legacycrypt_password_verification(self):
         auth = self.auth
         auth.debug = lambda message: None
