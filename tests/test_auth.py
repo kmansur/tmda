@@ -16,6 +16,8 @@ import base64
 import hashlib
 import hmac
 import os
+import pathlib
+import sys
 import tempfile
 import unittest
 import types
@@ -59,6 +61,30 @@ class AuthenticationTests(unittest.TestCase):
         with patch.dict('sys.modules', {'crypt': None, 'legacycrypt': backend}):
             self.assertTrue(auth.authenticate_plain_file('alice', 'correct'))
             self.assertFalse(auth.authenticate_plain_file('alice', 'incorrect'))
+
+
+    def test_checkpassword_fd3_binary_credentials(self):
+        """The checkpassword child receives NUL bytes on fd 3."""
+        with tempfile.TemporaryDirectory() as directory:
+            script = pathlib.Path(directory) / 'read_fd3.py'
+            script.write_text(
+                'import os, sys\n'
+                'data = os.read(3, 1024)\n'
+                'sys.exit(0 if data == b"alice\\0secret\\0" else 4)\n',
+                encoding='ascii')
+            self.auth.debug = lambda message: None
+            status = self.auth._Auth__pipefd3(
+                sys.executable + ' ' + str(script),
+                'alice\0secret\0')
+            self.assertEqual(status, 0)
+
+    def test_checkpassword_fd3_failure_status(self):
+        with tempfile.TemporaryDirectory() as directory:
+            script = pathlib.Path(directory) / 'reject.py'
+            script.write_text('import sys\nsys.exit(7)\n', encoding='ascii')
+            self.auth.debug = lambda message: None
+            self.assertEqual(self.auth._Auth__pipefd3(
+                sys.executable + ' ' + str(script), b'no-match\0'), 7)
 
     def test_cram_md5_legacy_digest(self):
         self.auth.supports_cram_md5 = lambda: True
