@@ -79,6 +79,22 @@ class FilterParserTests(unittest.TestCase):
                 path, ['another@example.com'], actions, 'from-dbm'), 0)
             self.assertEqual(actions['incoming'][0], 'hold')
 
+
+    def test_legacy_mailman_pickle_membership_filter(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config = pathlib.Path(directory) / 'config.pck'
+            with config.open('wb') as stream:
+                pickle.dump({'members': {'sender@example.com': 1}},
+                            stream, protocol=2)
+            parser = self.module.FilterParser()
+            parser.filterlist = [
+                ('from-mailman', {'attr': 'members'}, directory,
+                 {'incoming': ('accept', None)}, 1),
+            ]
+            actions, _ = parser.firstmatch(
+                'local@example.com', ['sender@example.com'])
+            self.assertEqual(actions.get('incoming', (None,))[0], 'accept')
+
     def test_pipe_rule_matching(self):
         parser = self.module.FilterParser()
         parser.filterlist = [
