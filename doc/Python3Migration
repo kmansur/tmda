@@ -570,3 +570,14 @@ correction, not a new database backend.
 These unit tests cover the expected API contracts; native CDB and
 FreeBSD ndbm implementations still need validation on FreeBSD
 before declaring optional backend parity complete.
+
+Legacy tmdauth file character encoding
+-------------------------------------
+
+Python 2 read the original tmdauth flat authentication file as
+eight-bit strings. The Python 3 reader now decodes those files
+reversibly using latin-1 rather than assuming UTF-8, preserving
+historical password bytes and username parsing conventions.
+Regression coverage includes a tmdauth record with a non-UTF-8
+0xff password byte. The original credential file format and
+authentication behavior are not changed.
