@@ -8,7 +8,7 @@ Validated environments
 ----------------------
 
 The GitHub Actions workflow python3-install.yml installs the package
-inside a clean virtual environment with Python 3.13 and Python 3.14
+inside a clean virtual environment with Python 3.12, 3.13 and 3.14
 on Ubuntu. FreeBSD deployment is not yet verified.
 
 Linux or FreeBSD test environment
@@ -21,7 +21,7 @@ not replace an existing TMDA installation or use a live MTA.
     cd tmda
     git switch feature/python3-migration
 
-    python3.13 -m venv .venv
+    python3.12 -m venv .venv
     .venv/bin/python -m pip install --upgrade pip
     .venv/bin/python -m pip install .
 
@@ -30,8 +30,7 @@ not replace an existing TMDA installation or use a live MTA.
     .venv/bin/tmda-ofmipd --help
 
 The environment must provide the selected Python interpreter and
-its virtual environment support. Python 3.14 may be used in place
-of Python 3.13.
+its virtual environment support. Python 3.13 or 3.14 may be used in place of Python 3.12.
 
 Python 3 package metadata
 -------------------------
