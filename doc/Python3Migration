@@ -294,3 +294,32 @@ recipient delivery and disabled external default transport throughout
 these CI tests. This adds real-MTA integration evidence but does not
 replace staging tests for a production FreeBSD/Postfix deployment,
 authenticated relaying, timeouts, mail queue recovery and concurrency.
+
+Concurrent pending queue writes and failure handling
+--------------------------------------------------
+
+OriginalQueue now constructs complete messages in hidden temporary
+files within the pending directory. After writing and fsyncing the
+file, it publishes the historical timestamp.pid.msg filename with
+os.link(), which fails rather than replacing an existing message.
+The temporary file is removed in a finally block. Message headers
+modified during the operation are restored even on write failure.
+
+MaildirQueue uses separate unpredictable temporary filenames in
+Maildir/tmp and publishes the final timestamp.pid.hostname filename
+into Maildir/new using the same atomic hard-link mechanism. It no
+longer changes the process-wide SIGALRM handler during delivery.
+Both queue formats now safely create directories when several
+writers encounter a new pending directory at the same time.
+
+The test suite covers failed fsync, failed final hard-link
+publication, eight simultaneous writers using the same message ID,
+and parallel writes of 32 independent messages. The tests verify
+that readers see no partial published files and temporary files
+are removed when the write or publish operation raises an exception.
+
+Passing these tests on Python 3.12, 3.13 and 3.14 establishes
+basic concurrency and error-path behavior only. It does not
+demonstrate crash-safe filesystem directory fsync semantics,
+network filesystem guarantees, sustained high throughput,
+or durability following sudden power loss.
