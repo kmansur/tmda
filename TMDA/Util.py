@@ -686,7 +686,13 @@ def build_cdb(filename):
                 value = linef[1]
             except IndexError:
                 value = ''
-            cdb.add(key, value)
+            try:
+                # Python 3 CDB extensions commonly accept byte keys and
+                # values; preserve the original eight-bit list contents.
+                cdb.add(key.encode('latin-1'), value.encode('latin-1'))
+            except TypeError:
+                # Retain compatibility with historical text-based bindings.
+                cdb.add(key, value)
         cdb.finish()
     except:
         return 0
