@@ -381,3 +381,12 @@ These changes are compatibility and reliability corrections,
 not additional user-visible features. They do not constitute
 full production verification of optional third-party cdb,
 DNS or LDAP modules, or of original FreeBSD hosting setups.
+
+Legacy ezmlm subscriber files
+----------------------------
+
+The from-ezmlm/to-ezmlm filter sources now open subscriber files
+with reversible latin-1 decoding rather than the Python 3 default
+locale encoding. This preserves original eight-bit subscriber
+addresses and NUL-separated record boundaries. The integration
+suite includes a legacy subscriber file with a non-ASCII byte.
