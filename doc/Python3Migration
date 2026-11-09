@@ -462,3 +462,18 @@ operation in the same long-lived process from inheriting an active
 fileinput reader. Regression coverage exercises repeated list
 loads, consecutive confirmation append operations and duplicate
 entries without altering the original on-disk list format.
+
+Original autoresponse templates in installed Python packages
+---------------------------------------------------------
+
+The Python 3 setuptools package now installs the original nine
+templates/*.txt files into share/tmda in the installation prefix.
+Util.maketext already searches sys.prefix/share/tmda, so these
+existing templates are available when TMDA is installed outside
+the source checkout, including isolated virtual environments.
+
+The Python 3 isolated-install GitHub Actions workflow explicitly
+checks that all nine original template filenames are present in
+sys.prefix/share/tmda for Python 3.12, 3.13 and 3.14.
+This is packaging parity with the original confirmation and
+bounce templates, not a new feature.
