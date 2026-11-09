@@ -19,6 +19,7 @@ import os
 import pathlib
 import sys
 import tempfile
+import time
 import types
 import unittest
 from unittest.mock import patch
@@ -141,6 +142,23 @@ class PendingQueueTests(unittest.TestCase):
                 cwd = os.getcwd()
                 queue.cleanup()
                 self.assertEqual(os.getcwd(), cwd)
+
+
+    def test_cleanup_removes_only_expired_messages(self):
+        old_id = '1700000000.101'
+        new_id = str(int(time.time())) + '.102'
+        for queue_class in (self.OriginalQueue, self.MaildirQueue):
+            with self.subTest(queue=queue_class.__name__):
+                self.defaults.PENDING_DIR = str(
+                    pathlib.Path(self.tmp.name) / queue_class.__name__)
+                queue = queue_class()
+                queue.insert_message(self._message(), old_id, 'bob@example.com')
+                queue.insert_message(self._message(), new_id, 'bob@example.com')
+                cwd = os.getcwd()
+                queue.cleanup()
+                self.assertEqual(os.getcwd(), cwd)
+                self.assertFalse(queue.find_message(old_id))
+                self.assertTrue(queue.find_message(new_id))
 
     def test_maildir_missing_id_reports_requested_id(self):
         queue = self.MaildirQueue()
