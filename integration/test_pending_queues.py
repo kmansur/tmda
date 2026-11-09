@@ -188,7 +188,6 @@ class PendingQueueTests(unittest.TestCase):
                 self.defaults.PENDING_DIR = str(
                     pathlib.Path(self.tmp.name) / queue_class.__name__)
                 queue = queue_class()
-                queue._create()
                 def insert(index):
                     msg = self._message()
                     msg.replace_header('Subject', 'Writer %d' % index)
@@ -212,7 +211,6 @@ class PendingQueueTests(unittest.TestCase):
                 self.defaults.PENDING_DIR = str(
                     pathlib.Path(self.tmp.name) / queue_class.__name__)
                 queue = queue_class()
-                queue._create()
                 identifiers = ['1700000000.%d' % i for i in range(100, 132)]
                 def insert(value):
                     msg = self._message()
