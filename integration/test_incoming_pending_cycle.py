@@ -319,5 +319,31 @@ class IncomingPendingTests(unittest.TestCase):
         self.assertEqual(len(list(response_dir.iterdir())), 1)
 
 
+    def test_interactive_pending_delete_keeps_legacy_prompt(self):
+        held = self._run('tmda-rfilter', data=self._incoming_message())
+        self.assertIn(held.returncode, (0, 99),
+                      held.stderr.decode('utf-8', errors='replace'))
+        messages = list(self.pending.glob('*.msg'))
+        self.assertEqual(len(messages), 1)
+        interactive = self._run(
+            'tmda-pending', messages[0].stem, data=b'd\n')
+        self.assertEqual(interactive.returncode, 0,
+                         interactive.stderr.decode('utf-8', errors='replace'))
+        self.assertIn(b'[d]el', interactive.stdout)
+        self.assertFalse(messages[0].exists())
+
+    def test_interactive_pending_quit_preserves_message(self):
+        held = self._run('tmda-rfilter', data=self._incoming_message())
+        self.assertIn(held.returncode, (0, 99),
+                      held.stderr.decode('utf-8', errors='replace'))
+        messages = list(self.pending.glob('*.msg'))
+        self.assertEqual(len(messages), 1)
+        interactive = self._run(
+            'tmda-pending', messages[0].stem, data=b'q\n')
+        self.assertEqual(interactive.returncode, 0,
+                         interactive.stderr.decode('utf-8', errors='replace'))
+        self.assertTrue(messages[0].exists())
+
+
 if __name__ == '__main__':
     unittest.main()
