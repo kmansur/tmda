@@ -31,9 +31,9 @@ from glob import glob
 
 import fcntl
 import os
-import signal
 import socket
 import stat
+import tempfile
 import time
 
 
@@ -123,16 +123,18 @@ class MaildirQueue(Queue):
 
     def insert_message(self, msg, mailid, recipient):
         validate_mailid(mailid)
-        # Create the Maildir if necessary.
         self._create()
-        # X-TMDA-Recipient is used by release_pending()
-        del msg['X-TMDA-Recipient']
-        msg['X-TMDA-Recipient'] = recipient
-        # Write message
-        time, pid = mailid.split('.')
-        self.__deliver_maildir(Util.msg_as_string(msg), time, pid, 
-                               Defaults.PENDING_DIR)
-        del msg['X-TMDA-Recipient']
+        original_headers = msg.get_all('X-TMDA-Recipient', [])
+        try:
+            del msg['X-TMDA-Recipient']
+            msg['X-TMDA-Recipient'] = recipient
+            timestamp, pid = mailid.split('.')
+            self.__deliver_maildir(Util.msg_as_string(msg), timestamp, pid,
+                                   Defaults.PENDING_DIR)
+        finally:
+            del msg['X-TMDA-Recipient']
+            for value in original_headers:
+                msg['X-TMDA-Recipient'] = value
 
 
     def _messages(self):
@@ -170,80 +172,49 @@ class MaildirQueue(Queue):
 
 
     def __deliver_maildir(self, message, time, pid, maildir):
-        """Reliably deliver a mail message into a Maildir.
+        """Atomically publish a complete message in Maildir/new.
 
-        Implementation differs slightly from the one in TMDA.Deliver()
-        since we need to maintain the time and pid in the file's name.
-
-        message is the mail message as a string.
-
-        time and pid come from the mailid.
-
-        maildir is the destination Maildir.
-
-        Based on code from getmail
-        Copyright (C) 2001 Charles Cazabon, and licensed under the GNU
-        General Public License version 2.
+        A private temporary filename prevents concurrent writers from
+        corrupting the same queue identifier. Publishing via os.link()
+        refuses to overwrite a message already present.
         """
-        # e.g, 1014754642.51195.aguirre.la.mastaler.com
         filename = '%s.%s.%s' % (time, pid, socket.gethostname())
-        # Set a 24-hour alarm for this delivery.
-        signal.signal(signal.SIGALRM, alarm_handler)
-        signal.alarm(24 * 60 * 60)
-
         dir_tmp = os.path.join(maildir, 'tmp')
         dir_cur = os.path.join(maildir, 'cur')
         dir_new = os.path.join(maildir, 'new')
-        if not (os.path.isdir(dir_tmp) and 
-                os.path.isdir(dir_cur) and
-                os.path.isdir(dir_new)):
+        if not all(os.path.isdir(path) for path in
+                   (dir_tmp, dir_cur, dir_new)):
             raise Errors.DeliveryError('not a Maildir! (%s)' % maildir)
 
-        fname_tmp = os.path.join(dir_tmp, filename)
         fname_new = os.path.join(dir_new, filename)
+        fname_cur = os.path.join(dir_cur, filename)
+        if os.path.exists(fname_new) or os.path.exists(fname_cur):
+            raise Errors.DeliveryError('pending message already exists: %s'
+                                       % filename)
 
-        # File must not already exist.
-        if os.path.exists(fname_tmp):
-            raise Errors.DeliveryError(fname_tmp + 'already exists!')
-        if os.path.exists(fname_new):
-            raise Errors.DeliveryError(fname_new + 'already exists!')
-
-        # Get user & group of maildir.
-        s_maildir = os.stat(maildir)
-        maildir_owner = s_maildir[stat.ST_UID]
-        maildir_group = s_maildir[stat.ST_GID]
-
-        # Open file to write.
+        temporary = None
         try:
-            fd = os.open(fname_tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-            fp = os.fdopen(fd, 'wb', 4096)
-            os.chmod(fname_tmp, 0o600)
-            try:
-                os.chown(fname_tmp, maildir_owner, maildir_group)
-            except OSError:
-                # Not running as root, can't chown file.
-                pass
-            fp.write(message.encode('latin-1') if isinstance(message, str) else message)
-            fp.flush()
-            os.fsync(fp.fileno())
-            fp.close()
-        except (OSError, IOError) as o:
-            signal.alarm(0)
-            raise Errors.DeliveryError('Failure writing file %s (%s)' % (fname_tmp, o))
-
-        # Move message file from Maildir/tmp to Maildir/new
-        try:
-            os.link(fname_tmp, fname_new)
-            os.unlink(fname_tmp)
-        except OSError:
-            signal.alarm(0)
-            try:
-                os.unlink(fname_tmp)
-            except:
-                pass
-            raise Errors.DeliveryError('failure renaming "%s" to "%s"' \
-                   % (fname_tmp, fname_new))
-
-        # Cancel the alarm.
-        signal.alarm(0)
-        signal.signal(signal.SIGALRM, signal.SIG_DFL)
+            fd, temporary = tempfile.mkstemp(
+                prefix='.tmda-', suffix='.tmp', dir=dir_tmp)
+            owner = os.stat(maildir)
+            with os.fdopen(fd, 'wb') as fp:
+                try:
+                    os.fchown(fp.fileno(), owner.st_uid, owner.st_gid)
+                except PermissionError:
+                    pass
+                if isinstance(message, str):
+                    message = message.encode('latin-1')
+                fp.write(message)
+                fp.flush()
+                os.fsync(fp.fileno())
+            os.link(temporary, fname_new)
+        except (OSError, IOError) as error:
+            raise Errors.DeliveryError(
+                'Failure publishing Maildir message %s (%s)' %
+                (filename, error)) from error
+        finally:
+            if temporary is not None:
+                try:
+                    os.unlink(temporary)
+                except FileNotFoundError:
+                    pass
