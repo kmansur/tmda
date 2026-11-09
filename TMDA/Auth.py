@@ -493,45 +493,42 @@ class Auth(Util.Debugable):
         return 0
 
     def __pipefd3(self, command, *strings):
-        """Executes a command, feeding strings into fd#3
-        Returns the errorcode"""
-        self.debug( "UID = %d, EUID = %d" % (os.getuid(), os.geteuid()))
+        """Run a checkpassword program with credentials on descriptor 3.
+
+        The parent process must not close or replace its own descriptor 3:
+        the original Python 2 implementation could corrupt the SMTP
+        daemon's open sockets and descriptors. All remapping is done
+        exclusively in the child process.
+        """
+        import shlex
+        self.debug("UID = %d, EUID = %d" % (os.getuid(), os.geteuid()))
         fd3read, fd3write = os.pipe()
-        # Attach the pipe to FD 3 if it os not already.
-        if fd3read != 3:
-            try:
-                os.close(3)
-                os.dup2(fd3read,3)
-            except Exception as err:
-                self.debug( "Pipefd3: %s (%s)" % (err.__class__, err) )
-                raise err
-        self.debug( "Successful pipe()." )
-        pid = os.fork()
-        if pid == 0:
-            # *** Child ***
-            # Close other fd's
+        try:
+            pid = os.fork()
+        except BaseException:
+            os.close(fd3read)
             os.close(fd3write)
+            raise
+        if pid == 0:
             try:
-                # Exec the program
-                os.execvp(command.split()[0], command.split())
-            except Exception as err:
-                self.debug( "Pipefd3: Execvp %s (%s)" % (err.__class__, err) )
+                os.close(fd3write)
+                if fd3read != 3:
+                    os.dup2(fd3read, 3)
+                    os.close(fd3read)
+                os.execvp(shlex.split(command)[0], shlex.split(command))
+            except BaseException:
                 os._exit(200)
-        # *** Parent ***
-        self.debug( "Successful fork(), PID = %d" % pid )
-        # Open pipe into FD3
+
         os.close(fd3read)
-        fd3 = os.fdopen(fd3write, 'w', -1)
-        # Feed in the input
-        for s in strings:
-            fd3.write(s)
-        fd3.flush()
-        fd3.close()
-        # Wait for command to exit
-        pid, status = os.waitpid(pid, 0)
-        self.debug( "PID = %d, status = %d" % (pid, status))
-        # Return the errorcode
-        return status
+        data = b''.join(s.encode('latin-1') if isinstance(s, str) else s
+                        for s in strings)
+        try:
+            with os.fdopen(fd3write, 'wb') as stream:
+                stream.write(data)
+        finally:
+            _, status = os.waitpid(pid, 0)
+        return os.waitstatus_to_exitcode(status)
+
 
     def __pipecmd(self, command, *strings):
         """Exec a command and pipe strings into stdin; return its exit code."""
