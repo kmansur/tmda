@@ -211,3 +211,27 @@ outside the checkout with Python 3.13 and Python 3.14.
 The incoming filter has not yet been tested end-to-end against
 a real Postfix/qmail recipient, and the complete pending queue
 administration CLI still needs functional integration coverage.
+
+Incoming message and pending queue end-to-end checks
+---------------------------------------------------
+
+integration/test_incoming_pending_cycle.py exercises the actual
+tmda-rfilter and tmda-pending executables with temporary home
+directories, configuration and encryption keys. No production mail
+account or external SMTP server is used.
+
+The incoming filter places messages on hold; tmda-pending then lists
+and deletes them using the original and Maildir queue formats.
+A separate release test verifies that a pending message can be
+re-injected into a local capture executable, carrying the original
+body and the X-TMDA-Confirm-Done and X-TMDA-Released headers.
+
+A simulated sendmail failure must cause tmda-pending to exit with
+an error while leaving the original pending file intact. This
+test covers loss prevention on rejected local reinjection, not
+simultaneous or partial delivery.
+
+The tests discovered and fixed a built-in list shadowing bug in the
+incoming filter and decoding failures when optional summary headers
+are absent. Further load, concurrency, cleanup and real-MTA
+integration testing is required before production use.
