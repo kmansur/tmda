@@ -15,6 +15,7 @@
 from email.message import EmailMessage
 from email.parser import Parser
 import importlib
+from concurrent.futures import ThreadPoolExecutor
 import os
 import pathlib
 import sys
@@ -159,6 +160,48 @@ class PendingQueueTests(unittest.TestCase):
                 self.assertEqual(os.getcwd(), cwd)
                 self.assertFalse(queue.find_message(old_id))
                 self.assertTrue(queue.find_message(new_id))
+
+
+    def test_write_failure_does_not_publish_partial_message(self):
+        for queue_class in (self.OriginalQueue, self.MaildirQueue):
+            with self.subTest(queue=queue_class.__name__):
+                self.defaults.PENDING_DIR = str(
+                    pathlib.Path(self.tmp.name) / queue_class.__name__)
+                queue = queue_class()
+                original = self._message()
+                with patch('os.fsync', side_effect=OSError('simulated disk failure')):
+                    with self.assertRaises((OSError, IOError)):
+                        queue.insert_message(original, '1700000000.123',
+                                             'bob@example.com')
+                self.assertEqual(queue.fetch_ids(), [])
+                self.assertIsNone(original.get('X-TMDA-Recipient'))
+                if queue_class is self.MaildirQueue:
+                    self.assertEqual(
+                        list((pathlib.Path(self.defaults.PENDING_DIR) / 'tmp').iterdir()),
+                        [])
+
+    def test_concurrent_insert_same_id_never_overwrites_message(self):
+        for queue_class in (self.OriginalQueue, self.MaildirQueue):
+            with self.subTest(queue=queue_class.__name__):
+                self.defaults.PENDING_DIR = str(
+                    pathlib.Path(self.tmp.name) / queue_class.__name__)
+                queue = queue_class()
+                queue._create()
+                def insert(index):
+                    msg = self._message()
+                    msg.replace_header('Subject', 'Writer %d' % index)
+                    try:
+                        queue.insert_message(msg, '1700000000.123',
+                                             'bob@example.com')
+                    except (OSError, IOError):
+                        return False
+                    return True
+                with ThreadPoolExecutor(max_workers=8) as pool:
+                    results = list(pool.map(insert, range(8)))
+                self.assertEqual(sum(results), 1)
+                self.assertEqual(queue.fetch_ids(), ['1700000000.123'])
+                self.assertIn('Writer', queue.fetch_message(
+                    '1700000000.123')['Subject'])
 
     def test_maildir_missing_id_reports_requested_id(self):
         queue = self.MaildirQueue()
