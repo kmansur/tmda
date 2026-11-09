@@ -515,7 +515,9 @@ class Auth(Util.Debugable):
                 if fd3read != 3:
                     os.dup2(fd3read, 3)
                     os.close(fd3read)
-                os.execvp(shlex.split(command)[0], shlex.split(command))
+                os.set_inheritable(3, True)
+                argv = shlex.split(command)
+                os.execvp(argv[0], argv)
             except BaseException:
                 os._exit(200)
 
