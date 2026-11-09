@@ -675,8 +675,8 @@ def build_cdb(filename):
     import cdb
     try:
         cdbname = filename + '.cdb'
-        tempfile.tempdir = os.path.dirname(filename)
-        tmpname = os.path.split(tempfile.mktemp())[1]
+        tmpname = os.path.split(tempfile.mktemp(
+            dir=os.path.dirname(filename) or '.'))[1]
         cdb = cdb.cdbmake(cdbname, cdbname + '.' + tmpname)
         for line in file_to_list(filename):
             linef = line.split()
@@ -700,8 +700,7 @@ def build_dbm(filename):
     try:
         dbmpath, dbmname = os.path.split(filename)
         dbmname += '.db'
-        tempfile.tempdir = dbmpath
-        tmpname = tempfile.mktemp()
+        tmpname = tempfile.mktemp(dir=dbmpath or '.')
         dbm = dbm.open(tmpname, 'n')
         for line in file_to_list(filename):
             linef = line.split()
@@ -741,11 +740,14 @@ def pickleit(object, file, proto=2):
 
     default is 2, since we must support Python 2.3 and above.
     """
-    tempfile.tempdir = os.path.dirname(file)
-    tmpname = tempfile.mkstemp()[1]
-    with open(tmpname, 'wb') as fp:
-        pickle.dump(object, fp, proto)
-    os.rename(tmpname, file)
+    fd, tmpname = tempfile.mkstemp(dir=os.path.dirname(file) or '.')
+    try:
+        with os.fdopen(fd, 'wb') as fp:
+            pickle.dump(object, fp, proto)
+        os.replace(tmpname, file)
+    finally:
+        if os.path.exists(tmpname):
+            os.unlink(tmpname)
     return
 
 
