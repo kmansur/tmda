@@ -240,5 +240,37 @@ class IncomingPendingTests(unittest.TestCase):
 
 
 
+    def test_original_confirmation_request_generates_reply_address(self):
+        self.incoming.write_text('from * confirm\n', encoding='ascii')
+        fake_sendmail = self.home / 'fake-request-sendmail'
+        capture = self.home / 'request.eml'
+        fake_sendmail.write_text(
+            '#!' + sys.executable + '\n'
+            'import os, sys\n'
+            'with open(os.environ["TMDA_TEST_RELEASE"], "wb") as output:\n'
+            '    output.write(sys.stdin.buffer.read())\n',
+            encoding='ascii')
+        fake_sendmail.chmod(0o700)
+        with pathlib.Path(self.env['TMDARC']).open(
+                'a', encoding='utf-8') as stream:
+            stream.write(
+                'MAIL_TRANSPORT = "sendmail"\n'
+                'SENDMAIL_PROGRAM = ' + repr(str(fake_sendmail)) + '\n'
+                'TEMPLATE_DIR = ' + repr(str(ROOT / 'templates')) + '\n'
+                'MAX_AUTORESPONSES_PER_DAY = 0\n'
+                'AUTORESPONSE_INCLUDE_SENDER_COPY = 1\n')
+        self.env['TMDA_TEST_RELEASE'] = str(capture)
+        result = self._run('tmda-rfilter', data=self._incoming_message())
+        self.assertIn(result.returncode, (0, 99),
+                      result.stderr.decode('utf-8', errors='replace'))
+        self.assertEqual(len(list(self.pending.glob('*.msg'))), 1)
+        self.assertTrue(capture.exists())
+        generated = capture.read_bytes()
+        self.assertIn(b'Please confirm your message', generated)
+        self.assertIn(b'Original Message Headers', generated)
+        self.assertIn(b'alice-confirm-', generated)
+
+
+
 if __name__ == '__main__':
     unittest.main()
