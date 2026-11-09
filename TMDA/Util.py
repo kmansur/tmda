@@ -752,7 +752,9 @@ def pickleit(object, file, proto=2):
 def unpickle(file):
     """Retrieve and return object from file."""
     with open(file, 'rb') as fp:
-        object = pickle.load(fp)
+        # Python 2 string payloads (including eight-bit mail addresses)
+        # are decoded reversibly when opening existing queue caches.
+        object = pickle.load(fp, encoding='latin-1')
     return object
 
 
