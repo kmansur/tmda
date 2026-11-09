@@ -19,6 +19,8 @@ import os
 import pickle
 import sys
 import tempfile
+import types
+from unittest.mock import patch
 import unittest
 
 
@@ -53,6 +55,27 @@ class UtilityTests(unittest.TestCase):
                 fp.write(old_pickle)
             self.assertEqual(Util.unpickle(path), '\xff')
 
+
+
+    def test_cdb_autobuild_handles_python3_binary_keys(self):
+        from TMDA import Util
+        captured = []
+        class Maker:
+            def add(self, key, value):
+                if not isinstance(key, bytes) or not isinstance(value, bytes):
+                    raise TypeError('CDB Python 3 extension expects bytes')
+                captured.append((key, value))
+            def finish(self):
+                pass
+        stub = types.ModuleType('cdb')
+        stub.cdbmake = lambda final, tmp: Maker()
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'whitelist')
+            with open(path, 'w', encoding='latin-1') as stream:
+                stream.write('SENDER@example.com accept\n')
+            with patch.dict(sys.modules, {'cdb': stub}):
+                self.assertEqual(Util.build_cdb(path), 1)
+        self.assertEqual(captured, [(b'sender@example.com', b'accept')])
 
     def test_dbm_autobuild_preserves_legacy_list_content(self):
         from TMDA import Util
