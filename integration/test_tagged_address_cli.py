@@ -57,6 +57,25 @@ class TaggedAddressCLITests(unittest.TestCase):
         self.assertEqual(verified.returncode, 0, verified.stderr)
         self.assertIn('STATUS: VALID', verified.stdout)
 
+
+    def test_sender_address_cli_round_trip_and_wrong_sender(self):
+        generated = self._run('tmda-address', '-a', 'alice@example.com',
+                              '-s', 'bob@example.org')
+        self.assertEqual(generated.returncode, 0, generated.stderr)
+        address = generated.stdout.strip()
+        self.assertIn('-sender-', address)
+        verified = self._run('tmda-check-address', address, 'bob@example.org')
+        self.assertEqual(verified.returncode, 0, verified.stderr)
+        self.assertIn('STATUS: VALID', verified.stdout)
+        rejected = self._run('tmda-check-address', address, 'other@example.org')
+        self.assertEqual(rejected.returncode, 0, rejected.stderr)
+        self.assertNotIn('STATUS: VALID', rejected.stdout)
+
+    def test_dated_address_cli_expired_cookie(self):
+        expired = self._run('tmda-check-address',
+                            'alice-dated-1000000000.000000@invalid.example')
+        self.assertNotIn('STATUS: VALID', expired.stdout)
+
     def test_dated_address_cli_round_trip(self):
         generated = self._run('tmda-address', '-a', 'alice@example.com',
                               '-d', '-t', '1d')
