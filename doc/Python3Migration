@@ -252,3 +252,25 @@ and the working directory remains unchanged.
 These checks run in the integration suite on Python 3.12, 3.13 and
 3.14. This is not yet a substitute for validating queue races,
 unexpected power loss, NFS storage or MTA interoperability.
+
+Local Postfix MTA integration
+----------------------------
+
+.github/workflows/python3-postfix-local.yml installs Postfix on an
+ephemeral GitHub Actions Ubuntu runner, configures loopback-only SMTP,
+disables external default transport, and creates a dedicated local
+recipient. The integration/test_postfix_local.py suite invokes the
+real tmda-inject command and checks delivery into the local Postfix
+mailbox using both the sendmail program transport and direct SMTP.
+
+The tests verify MIME attachment integrity after delivery and exercise
+SMTP recipient rejection. Postfix mailboxes remain owned by the local
+recipient and are read through a privilege-separated test snapshot,
+not by making mailbox permissions publicly readable.
+
+The workflow covers Python 3.12, 3.13 and 3.14. These results establish
+functional interoperability with the runner's Postfix build in a
+single-host, local-only test configuration. They do not validate
+internet-facing SMTP, authenticated relay, anti-spam policy,
+production mailbox permissions, FreeBSD/Postfix or throughput under
+load. This branch must not be deployed to production yet.
