@@ -106,11 +106,13 @@ if os.path.exists(TMDARC):
             value = cf.get(cf_section, option)
             option = option.upper()
             # Translate options into variables.
-            if value in list(string.digits):
-                # make sure integer values don't get turned into strings
-                exec('%s = %s' % (option, value))
+            if value in string.digits:
+                # Preserve the original single-digit integer convention.
+                vars()[option] = int(value)
             else:
-                exec('%s = "%s"' % (option, value))
+                # ConfigParser supplies literal values, not Python code.
+                # Assign directly so quotes and backslashes stay intact.
+                vars()[option] = value
 
 
 from . import Util
