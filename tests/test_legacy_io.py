@@ -41,6 +41,17 @@ class UtilityTests(unittest.TestCase):
                 pickle.dump(value, fp, protocol=2)
             self.assertEqual(Util.unpickle(path), value)
 
+
+    def test_python2_eight_bit_pickle_cache_is_read(self):
+        from TMDA import Util
+        # Python 2 BINSTRING opcode with an original 0xff byte.
+        old_pickle = b'\x80\x02U\x01\xffq\x00.'
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'pending.pickle')
+            with open(path, 'wb') as fp:
+                fp.write(old_pickle)
+            self.assertEqual(Util.unpickle(path), '\xff')
+
     def test_pipecmd_writes_original_message_bytes(self):
         from TMDA import Util
         code = ('import sys; data=sys.stdin.buffer.read(); '
