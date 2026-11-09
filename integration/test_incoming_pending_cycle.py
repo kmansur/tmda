@@ -177,5 +177,68 @@ class IncomingPendingTests(unittest.TestCase):
         self.assertFalse(saved[0].exists())
 
 
+    def test_legacy_confirm_cookie_releases_and_cleans_queue(self):
+        """Original hold, valid address confirmation, and done-header cycle."""
+        fake_sendmail = self.home / 'fake-confirm-sendmail'
+        capture = self.home / 'confirmed.eml'
+        fake_sendmail.write_text(
+            '#!' + sys.executable + '\n'
+            'import os, sys\n'
+            'with open(os.environ["TMDA_TEST_RELEASE"], "wb") as output:\n'
+            '    output.write(sys.stdin.buffer.read())\n',
+            encoding='utf-8')
+        fake_sendmail.chmod(0o700)
+        with pathlib.Path(self.env['TMDARC']).open(
+                'a', encoding='utf-8') as stream:
+            stream.write(
+                'MAIL_TRANSPORT = "sendmail"\n'
+                'SENDMAIL_PROGRAM = ' + repr(str(fake_sendmail)) + '\n')
+        self.env['TMDA_TEST_RELEASE'] = str(capture)
+        original = self._incoming_message()
+
+        held = self._run('tmda-rfilter', data=original)
+        self.assertIn(held.returncode, (0, 99),
+                      held.stderr.decode('utf-8', errors='replace'))
+        files = list(self.pending.glob('*.msg'))
+        self.assertEqual(len(files), 1)
+        mailid = files[0].stem
+        timestamp, pid = mailid.split('.')
+        key = subprocess.run(
+            [sys.executable, '-c',
+             'from TMDA import Cookie; '
+             'import sys; print(Cookie.make_confirm_cookie('
+             'sys.argv[1],sys.argv[2],"accept"))',
+             timestamp, pid],
+            cwd=ROOT, env=self.env, capture_output=True,
+            text=True, timeout=10)
+        self.assertEqual(key.returncode, 0, key.stderr)
+        cookie = key.stdout.strip()
+
+        confirmed_env = self.env.copy()
+        confirmed_env['EXT'] = 'confirm-' + cookie
+        confirmed_env['RECIPIENT'] = 'alice-confirm-' + cookie + '@example.com'
+        confirmation = EmailMessage(policy=policy.SMTP)
+        confirmation['From'] = 'sender@example.net'
+        confirmation['To'] = confirmed_env['RECIPIENT']
+        confirmation['Subject'] = 'Confirm the pending message'
+        confirmation.set_content('Confirmation response')
+        released = subprocess.run(
+            [sys.executable, str(BIN / 'tmda-rfilter')],
+            cwd=ROOT, env=confirmed_env, capture_output=True,
+            input=confirmation.as_bytes(), timeout=15)
+        self.assertIn(released.returncode, (0, 99),
+                      released.stderr.decode('utf-8', errors='replace'))
+        self.assertTrue(capture.exists())
+        reinjected = capture.read_bytes()
+        self.assertIn(b'X-TMDA-Confirm-Done:', reinjected)
+        self.assertIn(b'Preserve original message body.', reinjected)
+
+        accepted = self._run('tmda-rfilter', data=reinjected)
+        self.assertEqual(accepted.returncode, 0,
+                         accepted.stderr.decode('utf-8', errors='replace'))
+        self.assertFalse(files[0].exists())
+
+
+
 if __name__ == '__main__':
     unittest.main()
