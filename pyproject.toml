@@ -39,3 +39,6 @@ script-files = [
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["TMDA", "TMDA.Queue"]
+
+[tool.setuptools.data-files]
+"share/tmda" = ["templates/*.txt"]
