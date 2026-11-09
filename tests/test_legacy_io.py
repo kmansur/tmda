@@ -98,6 +98,28 @@ class UtilityTests(unittest.TestCase):
                 self.assertEqual(Util.build_cdb(path), 1)
         self.assertEqual(captured, [('alice@example.com', 'accept')])
 
+
+    def test_dbm_autobuild_preserves_multi_file_backend(self):
+        from TMDA import Util
+        class MultiFileDB:
+            def __init__(self, basename):
+                self.basename = basename
+                self.values = {}
+            def __setitem__(self, key, value):
+                self.values[key] = value
+            def close(self):
+                for suffix in ('.dir', '.pag'):
+                    with open(self.basename + suffix, 'wb') as stream:
+                        stream.write(b'legacy ndbm data')
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'whitelist')
+            with open(path, 'w', encoding='ascii') as stream:
+                stream.write('alice@example.com accept\n')
+            with patch('dbm.open', side_effect=lambda name, flags: MultiFileDB(name)):
+                self.assertEqual(Util.build_dbm(path), 1)
+            self.assertTrue(os.path.isfile(path + '.db.dir'))
+            self.assertTrue(os.path.isfile(path + '.db.pag'))
+
     def test_dbm_autobuild_preserves_legacy_list_content(self):
         from TMDA import Util
         with tempfile.TemporaryDirectory() as directory:
