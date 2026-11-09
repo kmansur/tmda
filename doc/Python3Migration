@@ -409,3 +409,26 @@ is performed by these test cases.
 
 This is behavior regression coverage for existing TMDA 1.1.12
 features, not a change to confirmation semantics.
+
+Optional Python 3 authentication and DNS dependencies
+---------------------------------------------------
+
+Python removed its standard crypt module starting with Python 3.13.
+TMDA Auth's existing fallback imports legacycrypt when crypt is
+unavailable; administrators who use crypt-style tmdauth password
+hashes need to provide a compatible legacycrypt installation on
+Python 3.13 or later. The standard library on Python 3.12 still
+provides crypt on supported Unix platforms. This is an optional
+legacy authentication capability, not a requirement for every user.
+
+The original contrib/smtp-check-sender uses the PyDNS import name
+DNS. The historic pydns 2.x package targets Python 2; the FreeBSD
+ports collection has a Python 3 implementation under
+dns/py-py3dns. Its original GOOD/BAD SMTP recipient status convention
+is covered by isolated tests that use DNS and SMTP mocks; DNS/MX
+requests are not made over the public Internet during CI.
+
+The CDB Python extension and optional LDAP provider need
+independent installation and interoperability checks on FreeBSD.
+Their absence must not be confused with a successful end-to-end
+validation of those optional authentication and list backends.
