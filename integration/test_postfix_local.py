@@ -81,7 +81,14 @@ class LocalPostfixDeliveryTests(unittest.TestCase):
     def _mailbox_contains(self, subject):
         if not MAILBOX.exists():
             return False
-        inbox = mailbox.mbox(str(MAILBOX), create=False)
+        # Postfix owns the mailbox: copy it via the dedicated test user,
+        # rather than making a real mail spool world-readable.
+        copied = subprocess.run(
+            ['sudo', '-n', '-u', 'tmda-ci', '/bin/cat', str(MAILBOX)],
+            capture_output=True, check=True, timeout=5)
+        local_copy = self.home / 'mailbox-snapshot'
+        local_copy.write_bytes(copied.stdout)
+        inbox = mailbox.mbox(str(local_copy), create=False)
         try:
             for item in inbox:
                 if item.get('Subject') == subject:
