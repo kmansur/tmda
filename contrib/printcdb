@@ -33,6 +33,11 @@ import sys
 
 cdbfile = sys.argv[1]
 
-cdb = cdb.init(cdbfile)
-for key in list(cdb.keys()):
-    print('%s %s' % (key, cdb[key]))
+database = cdb.init(cdbfile)
+for key in database.keys():
+    value = database[key]
+    if isinstance(key, bytes):
+        key = key.decode('latin-1')
+    if isinstance(value, bytes):
+        value = value.decode('latin-1')
+    print('%s %s' % (key, value))
