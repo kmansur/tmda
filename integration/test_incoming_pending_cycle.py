@@ -156,5 +156,26 @@ class IncomingPendingTests(unittest.TestCase):
         self.assertEqual(saved[0].read_bytes(), before)
 
 
+    def test_maildir_hold_list_and_delete(self):
+        with pathlib.Path(self.env['TMDARC']).open(
+                'a', encoding='utf-8') as stream:
+            stream.write('PENDING_QUEUE_FORMAT = "maildir"\n')
+        filtered = self._run('tmda-rfilter', data=self._incoming_message())
+        self.assertIn(filtered.returncode, (0, 99), filtered.stderr.decode(
+            'utf-8', errors='replace'))
+        newdir = self.pending / 'new'
+        saved = list(newdir.iterdir())
+        self.assertEqual(len(saved), 1)
+        mailid = '.'.join(saved[0].name.split('.')[:2])
+        listing = self._run('tmda-pending', '-b', '-T')
+        self.assertEqual(listing.returncode, 0, listing.stderr.decode(
+            'utf-8', errors='replace'))
+        self.assertIn(mailid.encode('ascii'), listing.stdout)
+        deleted = self._run('tmda-pending', '-b', '-d', mailid)
+        self.assertEqual(deleted.returncode, 0, deleted.stderr.decode(
+            'utf-8', errors='replace'))
+        self.assertFalse(saved[0].exists())
+
+
 if __name__ == '__main__':
     unittest.main()
