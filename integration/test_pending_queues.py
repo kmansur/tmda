@@ -205,6 +205,26 @@ class PendingQueueTests(unittest.TestCase):
                 self.assertIn('Writer', queue.fetch_message(
                     '1700000000.123')['Subject'])
 
+
+    def test_concurrent_unique_ids_preserve_all_messages(self):
+        for queue_class in (self.OriginalQueue, self.MaildirQueue):
+            with self.subTest(queue=queue_class.__name__):
+                self.defaults.PENDING_DIR = str(
+                    pathlib.Path(self.tmp.name) / queue_class.__name__)
+                queue = queue_class()
+                queue._create()
+                identifiers = ['1700000000.%d' % i for i in range(100, 132)]
+                def insert(value):
+                    msg = self._message()
+                    msg.replace_header('Subject', value)
+                    queue.insert_message(msg, value, 'bob@example.com')
+                with ThreadPoolExecutor(max_workers=8) as pool:
+                    list(pool.map(insert, identifiers))
+                self.assertEqual(set(queue.fetch_ids()), set(identifiers))
+                for value in identifiers:
+                    self.assertEqual(queue.fetch_message(value)['Subject'],
+                                     value)
+
     def test_maildir_missing_id_reports_requested_id(self):
         queue = self.MaildirQueue()
         queue._create()
