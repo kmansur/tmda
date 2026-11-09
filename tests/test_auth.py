@@ -63,6 +63,39 @@ class AuthenticationTests(unittest.TestCase):
             self.assertFalse(auth.authenticate_plain_file('alice', 'incorrect'))
 
 
+
+    def test_virtual_user_home_lookup(self):
+        self.auth._Auth__default_tmda_dir = '.tmda'
+        self.auth.setup_vuser('/usr/local/bin/vhome')
+        with patch('TMDA.Util.getvuserhomedir',
+                   return_value='/home/virtual/alice') as lookup:
+            self.assertEqual(
+                self.auth.get_homedir('alice', 'example.org'),
+                '/home/virtual/alice')
+            self.assertEqual(
+                self.auth.get_tmdadir('alice', 'example.org'),
+                '/home/virtual/alice/.tmda')
+            lookup.assert_called_with(
+                'alice', 'example.org', '/usr/local/bin/vhome')
+
+    def test_config_directory_user_lookup(self):
+        self.auth._Auth__default_tmda_dir = '.tmda'
+        self.auth.setup_configdir('/srv/tmda-users')
+        self.assertEqual(
+            self.auth.get_homedir('alice'),
+            '/srv/tmda-users/alice')
+        self.assertEqual(
+            self.auth.get_tmdadir('alice'),
+            '/srv/tmda-users/alice/.tmda')
+
+    def test_checkpassword_command_does_not_duplicate_arguments(self):
+        self.auth.debug = lambda message: None
+        self.auth._Auth__ownerID = os.getuid()
+        with patch('TMDA.Util.CanExec', return_value=True):
+            self.auth.init_checkpw('/usr/local/bin/checkpassword /usr/bin/true')
+        self.assertEqual(self.auth._Auth__authprog,
+                         '/usr/local/bin/checkpassword /usr/bin/true')
+
     def test_checkpassword_fd3_binary_credentials(self):
         """The checkpassword child receives NUL bytes on fd 3."""
         with tempfile.TemporaryDirectory() as directory:
