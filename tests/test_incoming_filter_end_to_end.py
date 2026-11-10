@@ -93,5 +93,41 @@ class IncomingFilterEndToEndTests(unittest.TestCase):
 
 
 
+    def test_filter_confirmation_queues_message_and_sends_request(self):
+        self.incoming.write_text("from sender@example.org confirm\n",
+                                 encoding="ascii")
+        capture = self.home / "confirmation-request"
+        stub = self.home / "fake-sendmail"
+        stub.write_text(
+            "#!" + sys.executable + "\n"
+            "import pathlib, sys\n"
+            "pathlib.Path(" + repr(str(capture)) + ").write_bytes("
+            "sys.stdin.buffer.read())\n",
+            encoding="utf-8",
+        )
+        stub.chmod(0o700)
+        with self.config.open("a", encoding="ascii") as cfg:
+            cfg.write("MAIL_TRANSPORT = 'sendmail'\n")
+            cfg.write("SENDMAIL_PROGRAM = " + repr(str(stub)) + "\n")
+            cfg.write("MAX_AUTORESPONSES_PER_DAY = 0\n")
+            cfg.write("AUTORESPONSE_INCLUDE_SENDER_COPY = 0\n")
+        result = self.run_filter(
+            b"From: sender@example.org\n"
+            b"To: user@example.org\n"
+            b"Subject: confirm this\n\n"
+            b"historical \xff payload\n"
+        )
+        self.assertEqual(result.returncode, 99,
+                         result.stderr.decode(errors="replace"))
+        pending_messages = list((self.tmda / "pending").glob("*.msg"))
+        self.assertEqual(len(pending_messages), 1)
+        self.assertIn(b"historical \xff payload",
+                      pending_messages[0].read_bytes())
+        request = capture.read_bytes()
+        self.assertIn(b"Auto-Submitted: auto-replied", request)
+        self.assertIn(b"To: sender@example.org", request)
+
+
+
 if __name__ == "__main__":
     unittest.main()
