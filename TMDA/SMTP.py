@@ -65,6 +65,11 @@ class Connection:
     def sendmail(self, envsender, recips, msgtext):
         if self.__conn is None:
             self.__connect()
+        # smtplib encodes str messages as ASCII in Python 3.  Legacy
+        # TMDA messages may contain arbitrary eight-bit octets represented
+        # by latin-1 text; preserve them before handing data to smtplib.
+        if isinstance(msgtext, str):
+            msgtext = msgtext.encode('latin-1')
         try:
             results = self.__conn.sendmail(envsender, recips, msgtext)
         except smtplib.SMTPException:
