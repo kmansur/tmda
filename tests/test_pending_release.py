@@ -26,6 +26,8 @@ class PendingReleaseTests(unittest.TestCase):
             for name in ("Defaults", "Pending", "Cookie")
         }
         defaults = types.ModuleType("TMDA.Defaults")
+        defaults.RECIPIENT_DELIMITER = "-"
+        defaults.PRIMARY_ADDRESS_MATCH = 0
         defaults.PENDING_RELEASE_APPEND = None
         defaults.PENDING_DELETE_APPEND = None
         defaults.PENDING_WHITELIST_APPEND = None
