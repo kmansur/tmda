@@ -404,8 +404,14 @@ def pager(str):
                 pager = path
                 break
     try:
-        os.popen(pager, 'w').write(str)
-    except IOError:
+        # Python 2 passed raw eight-bit message strings to the pager.
+        # Python 3 text pipes use the locale encoding and can corrupt
+        # legacy message octets, so write and close a binary pipe.
+        data = str if isinstance(str, bytes) else str.encode('latin-1')
+        command = subprocess.Popen(pager, shell=True,
+                                   stdin=subprocess.PIPE)
+        command.communicate(data)
+    except (OSError, IOError):
         return
 
 
