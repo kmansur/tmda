@@ -128,7 +128,11 @@ class async_chat(dispatcher):
         raise NotImplementedError
 
     def handle_read(self):
-        data = self.socket.recv(65536)
+        try:
+            data = self.socket.recv(65536)
+        except (BlockingIOError, InterruptedError):
+            # Readiness can change between select() and recv().
+            return
         if not data:
             self.close()
             return
@@ -166,7 +170,11 @@ class async_chat(dispatcher):
                     self._output.appendleft(more)
                 # Socket can be replaced by a STARTTLS producer.
                 return
-            sent = self.socket.send(item)
+            try:
+                sent = self.socket.send(item)
+            except (BlockingIOError, InterruptedError):
+                # Keep the unsent bytes queued until the socket is writable.
+                return
             if not sent:
                 return
             if sent == len(item):
