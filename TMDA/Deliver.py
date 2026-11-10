@@ -157,7 +157,18 @@ class Deliver:
                 # don't wrap headers, don't escape From, don't add From_ line
                 self.__deliver_maildir(Util.msg_as_string(self.msg), dest)
         elif type == 'filter':
-            sys.stdout.write(Util.msg_as_string(self.msg))
+            # In Python 2, writing the message string to stdout preserved
+            # its original eight-bit octets. Python 3's text stdout
+            # otherwise re-encodes those octets using the locale (UTF-8).
+            message = Util.msg_as_string(self.msg)
+            if isinstance(message, str):
+                message = message.encode('latin-1')
+            output = getattr(sys.stdout, 'buffer', None)
+            if output is not None:
+                output.write(message)
+            else:
+                # Keep compatibility with text-only stdout replacements.
+                sys.stdout.write(message.decode('latin-1'))
 
     def __deliver_program(self, message, program):
         """Deliver message to /bin/sh -c program."""
