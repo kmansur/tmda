@@ -14,6 +14,7 @@
 
 import socket
 import unittest
+from unittest.mock import Mock, patch
 
 from TMDA import SMTPEventLoop as events
 
@@ -101,6 +102,39 @@ class SMTPEventLoopTests(unittest.TestCase):
         self.assertTrue(self.chat._closed)
         self.assertNotIn(id(self.chat), events.socket_map)
 
+
+    def test_transient_nonblocking_read_keeps_session_open(self):
+        temporary_socket = Mock()
+        temporary_socket.recv.side_effect = BlockingIOError()
+        with patch.object(self.chat, 'socket', temporary_socket):
+            self.chat.handle_read()
+        self.assertFalse(self.chat._closed)
+        self.client.sendall(b'NOOP\r\n')
+        self._tick(5)
+        self.assertEqual(self.chat.messages, [b'NOOP'])
+
+    def test_transient_nonblocking_write_preserves_queued_bytes(self):
+        self.chat.push(b'250 Ok\r\n')
+        temporary_socket = Mock()
+        temporary_socket.send.side_effect = BlockingIOError()
+        with patch.object(self.chat, 'socket', temporary_socket):
+            self.chat.handle_write()
+        self.assertFalse(self.chat._closed)
+        self.assertEqual(list(self.chat._output), [b'250 Ok\r\n'])
+        self._tick(5)
+        self.assertEqual(self.client.recv(4096), b'250 Ok\r\n')
+
+    def test_interrupted_socket_operation_keeps_session_open(self):
+        self.chat.push(b'220 Ready\r\n')
+        temporary_socket = Mock()
+        temporary_socket.send.side_effect = InterruptedError()
+        temporary_socket.recv.side_effect = InterruptedError()
+        with patch.object(self.chat, 'socket', temporary_socket):
+            self.chat.handle_read()
+            self.chat.handle_write()
+        self.assertFalse(self.chat._closed)
+        self._tick(5)
+        self.assertEqual(self.client.recv(4096), b'220 Ready\r\n')
 
 if __name__ == '__main__':
     unittest.main()
