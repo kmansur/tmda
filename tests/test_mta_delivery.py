@@ -1,4 +1,7 @@
 """Regression tests for legacy MTA exit status and delivery semantics."""
+import importlib
+import sys
+import types
 import unittest
 from unittest.mock import patch
 
@@ -6,8 +9,39 @@ from unittest.mock import patch
 class MTADeliveryTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        from TMDA import MTA
-        cls.module = MTA
+        import TMDA
+        cls.previous_defaults = getattr(TMDA, "Defaults", None)
+        cls.previous_mta = getattr(TMDA, "MTA", None)
+        cls.saved_module = sys.modules.get("TMDA.MTA")
+        cls.saved_deliver = sys.modules.get("TMDA.Deliver")
+        defaults = types.ModuleType("TMDA.Defaults")
+        cls.module_patch = patch.dict(sys.modules, {"TMDA.Defaults": defaults})
+        cls.module_patch.start()
+        TMDA.Defaults = defaults
+        sys.modules.pop("TMDA.MTA", None)
+        cls.module = importlib.import_module("TMDA.MTA")
+
+    @classmethod
+    def tearDownClass(cls):
+        import TMDA
+        sys.modules.pop("TMDA.MTA", None)
+        if cls.saved_module is not None:
+            sys.modules["TMDA.MTA"] = cls.saved_module
+        if cls.saved_deliver is None:
+            sys.modules.pop("TMDA.Deliver", None)
+        else:
+            sys.modules["TMDA.Deliver"] = cls.saved_deliver
+        cls.module_patch.stop()
+        if cls.previous_defaults is None:
+            if hasattr(TMDA, "Defaults"):
+                delattr(TMDA, "Defaults")
+        else:
+            TMDA.Defaults = cls.previous_defaults
+        if cls.previous_mta is None:
+            if hasattr(TMDA, "MTA"):
+                delattr(TMDA, "MTA")
+        else:
+            TMDA.MTA = cls.previous_mta
 
     def test_factory_retains_original_mta_types(self):
         for name, kind in (
