@@ -17,6 +17,7 @@ import dbm
 import io
 import os
 import pickle
+import shlex
 import sys
 import tempfile
 import types
@@ -178,6 +179,21 @@ class UtilityTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             with self.assertRaises(IOError):
                 Util.pipecmd([sys.executable, '-c', 'import sys; sys.exit(7)'])
+
+
+    def test_pager_preserves_original_eight_bit_message_bytes(self):
+        from TMDA import Util
+        with tempfile.TemporaryDirectory() as directory:
+            captured = os.path.join(directory, 'page.raw')
+            code = ("import pathlib, sys; pathlib.Path(" + repr(captured)
+                    + ").write_bytes(sys.stdin.buffer.read())")
+            command = (shlex.quote(sys.executable) + ' -c ' + shlex.quote(code))
+            with patch.dict(os.environ, {'PAGER': command}):
+                Util.pager('Subject: old\n\ncaf\xff\n')
+            with open(captured, 'rb') as stream:
+                self.assertEqual(stream.read(),
+                                 b'Subject: old\n\ncaf\xff\n')
+
 
 
 if __name__ == '__main__':
