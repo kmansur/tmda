@@ -73,6 +73,24 @@ class SMTPDeliveryTests(unittest.TestCase):
             self.assertEqual(connection.sendmail("sender@example.org", [], b"test"), {})
             client.quit.assert_called_once()
 
+    def test_sendmail_encodes_legacy_eight_bit_text_without_data_loss(self):
+        client = MagicMock()
+        client.sendmail.return_value = {}
+        with patch.object(self.SMTP.smtplib, "SMTP", return_value=client), \
+             patch.object(self.SMTP.Defaults, "SMTPHOST", "localhost"), \
+             patch.object(self.SMTP.Defaults, "SMTPSSL", False), \
+             patch.object(self.SMTP.Defaults, "SMTPAUTH_USERNAME", ""), \
+             patch.object(self.SMTP.Defaults, "SMTPAUTH_PASSWORD", ""), \
+             patch.object(self.SMTP.Defaults, "SMTP_MAX_SESSIONS_PER_CONNECTION", 1):
+            self.SMTP.Connection().sendmail(
+                "from@example.org", ["to@example.org"],
+                "Subject: legacy\r\n\r\ncaf\u00e9\r\n",
+            )
+            client.sendmail.assert_called_once_with(
+                "from@example.org", ["to@example.org"],
+                b"Subject: legacy\r\n\r\ncaf\xe9\r\n",
+            )
+
     def test_starttls_and_authentication_keep_existing_order(self):
         client = MagicMock()
         with patch.object(self.SMTP.smtplib, "SMTP", return_value=client), \
