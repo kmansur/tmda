@@ -74,5 +74,36 @@ class PendingCommandEndToEndTests(unittest.TestCase):
         self.assertFalse(self.file.exists())
 
 
+    def test_batch_release_reinjects_original_bytes_and_confirmation_header(self):
+        captured = self.home / "released-message"
+        arguments = self.home / "released-arguments"
+        stub = self.home / "fake-sendmail"
+        stub.write_text(
+            "#!" + sys.executable + "\n"
+            "import pathlib, sys\n"
+            "pathlib.Path(" + repr(str(captured)) + ").write_bytes("
+            "sys.stdin.buffer.read())\n"
+            "pathlib.Path(" + repr(str(arguments)) + ").write_text("
+            "'\\n'.join(sys.argv[1:]), encoding='utf-8')\n",
+            encoding="utf-8",
+        )
+        stub.chmod(0o700)
+        with self.config.open("a", encoding="ascii") as cfg:
+            cfg.write("MAIL_TRANSPORT = 'sendmail'\n")
+            cfg.write("SENDMAIL_PROGRAM = " + repr(str(stub)) + "\n")
+        result = self.run_command("-q", "-b", "-r", self.message_id)
+        self.assertEqual(result.returncode, 0,
+                         result.stderr.decode(errors="replace"))
+        message = captured.read_bytes()
+        self.assertIn(b"legacy \xff body\n", message)
+        self.assertIn(b"X-TMDA-Confirm-Done:", message)
+        self.assertNotIn(b"X-TMDA-Recipient:", message)
+        self.assertNotIn(b"Return-Path:", message)
+        self.assertEqual(arguments.read_text(encoding="utf-8").splitlines(),
+                         ["-i", "-f", "sender@example.org", "--",
+                          "user@example.org"])
+
+
+
 if __name__ == "__main__":
     unittest.main()
