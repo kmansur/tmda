@@ -58,7 +58,7 @@ class EntrypointTests(unittest.TestCase):
             env['TMDARC'] = str(pathlib.Path(home) / 'missing-config')
             for arguments, expected in (
                 (['-V'], 'TMDA/1.1.12'),
-                (['--version'], 'TMDA/1.1.12'),
+                (['--version'], '1.1.12'),
                 (['-h'], 'Sendmail compatibility wrapper'),
             ):
                 with self.subTest(arguments=arguments):
