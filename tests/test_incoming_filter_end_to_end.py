@@ -25,14 +25,14 @@ class IncomingFilterEndToEndTests(unittest.TestCase):
         key = self.tmda / "crypt_key"
         key.write_text("0123456789abcdef" * 3, encoding="ascii")
         key.chmod(0o600)
-        incoming = self.tmda / "incoming"
-        incoming.write_text("from sender@example.org accept\n",
+        self.incoming = self.tmda / "incoming"
+        self.incoming.write_text("from sender@example.org accept\n",
                             encoding="ascii")
         config = self.tmda / "config"
         config.write_text(
             "MAIL_TRANSFER_AGENT = 'postfix'\n"
             "DELIVERY = '_filter_'\n"
-            "FILTER_INCOMING = " + repr(str(incoming)) + "\n"
+            "FILTER_INCOMING = " + repr(str(self.incoming)) + "\n"
             "PENDING_CLEANUP_ODDS = 0\n"
             "USERNAME = 'user'\n"
             "HOSTNAME = 'example.org'\n",
@@ -70,6 +70,27 @@ class IncomingFilterEndToEndTests(unittest.TestCase):
                          result.stderr.decode(errors="replace"))
         self.assertIn(b"raw\xffpayload\n", result.stdout)
         self.assertNotIn(b"raw\xc3\xbfpayload", result.stdout)
+
+
+    def test_filter_hold_queues_original_eight_bit_message(self):
+        self.incoming.write_text("from sender@example.org hold\n",
+                                 encoding="ascii")
+        message = (
+            b"From: sender@example.org\n"
+            b"To: user@example.org\n"
+            b"Subject: held\n\n"
+            b"held\xffbody\n"
+        )
+        result = self.run_filter(message)
+        self.assertEqual(result.returncode, 99,
+                         result.stderr.decode(errors="replace"))
+        pending_dir = self.tmda / "pending"
+        files = list(pending_dir.glob("*.msg"))
+        self.assertEqual(len(files), 1)
+        contents = files[0].read_bytes()
+        self.assertIn(b"held\xffbody\n", contents)
+        self.assertIn(b"X-TMDA-Recipient: user@example.org", contents)
+
 
 
 if __name__ == "__main__":
