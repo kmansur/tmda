@@ -168,6 +168,25 @@ class UtilityTests(unittest.TestCase):
                 Util.file_to_list(path),
                 ['ALICE@example.com', 'bob@example.com'])
 
+    def test_eight_bit_legacy_address_lists_preserve_original_octets(self):
+        from TMDA import Util
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'whitelist')
+            with open(path, 'wb') as stream:
+                stream.write(b'alice@ex\xffmple.org accept\n')
+            self.assertEqual(
+                Util.file_to_list(path), ['alice@ex\xffmple.org accept'])
+            self.assertEqual(
+                Util.file_to_dict(path, {}),
+                {'alice@ex\xffmple.org': 'accept'})
+            self.assertEqual(
+                Util.append_to_file('alice@ex\xffmple.org accept', path), 0)
+            Util.append_to_file('bob@ex\xffmple.org accept', path)
+            with open(path, 'rb') as stream:
+                self.assertEqual(stream.read(),
+                    b'alice@ex\xffmple.org accept\n'
+                    b'bob@ex\xffmple.org accept\n')
+
     def test_pipecmd_writes_original_message_bytes(self):
         from TMDA import Util
         code = ('import sys; data=sys.stdin.buffer.read(); '
