@@ -241,7 +241,7 @@ if __name__ == "__main__":
 
     if arguments:
         try:
-            fp = open(arguments[0])
+            fp = open(arguments[0], encoding='latin-1')
         except IOError:
             usage(2, 'Error: can\'t open input file "%s"' % arguments[0])
     else:
