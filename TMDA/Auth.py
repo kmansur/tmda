@@ -377,17 +377,21 @@ class Auth(Util.Debugable):
         except ImportError:
             try:
                 import legacycrypt as crypt
-            except ImportError as err:
-                if self.__authfile_allows_cleartext:
-                    # The password may simply be a wrong cleartext value.
-                    # Do not require a crypt backend for this use case.
-                    return False
-                raise Errors.AuthError(
-                    'Unix password verification is unavailable.',
-                    'Install legacycrypt to use encrypted password files.'
-                ) from err
+            except ImportError:
+                # The stdlib crypt module was removed in Python 3.13.
+                # Keep Unix crypt(3) password verification available
+                # through the original operating system implementation.
+                from . import UnixCrypt as crypt
         self.debug("Comparing encrypted password.")
-        return crypt.crypt(password, pw[:2]) == pw
+        try:
+            return crypt.crypt(password, pw[:2]) == pw
+        except (OSError, UnicodeError) as err:
+            if self.__authfile_allows_cleartext:
+                return False
+            raise Errors.AuthError(
+                'Unix password verification is unavailable.',
+                'The operating system crypt(3) backend is required.'
+            ) from err
 
     def authenticate_plain_checkpw(self, username, password):
         """The checkpassword program should return 0 for auth ok, and a positive
