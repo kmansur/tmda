@@ -100,6 +100,17 @@ class UtilityTests(unittest.TestCase):
         self.assertEqual(captured, [('alice@example.com', 'accept')])
 
 
+    def test_dbm_autobuild_writes_original_eight_bit_key_bytes(self):
+        from TMDA import Util
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'whitelist')
+            with open(path, 'wb') as stream:
+                stream.write(b'alice@ex\xffmple.org accept\n')
+            self.assertEqual(Util.build_dbm(path), 1)
+            with dbm.open(path + '.db', 'r') as database:
+                self.assertEqual(database[b'alice@ex\xffmple.org'], b'accept')
+                self.assertNotIn(b'alice@ex\xc3\xbfmple.org', database)
+
     def test_dbm_autobuild_preserves_multi_file_backend(self):
         from TMDA import Util
         class MultiFileDB:
