@@ -862,10 +862,16 @@ class FilterParser:
             if not rows:
                 return 0
             if 'wildcards' in args:
+                # Python 2 DB-API drivers commonly returned byte strings.
+                # Accept the same eight-bit data from Python 3 drivers.
+                def text_value(value):
+                    return value.decode('latin-1') if isinstance(value, bytes) else value
                 if len(cursor.description) > 1:
-                    dblist = [' '.join([row[0], row[1] or '']) for row in rows]
+                    dblist = [' '.join([text_value(row[0]),
+                                       text_value(row[1]) if row[1] else ''])
+                              for row in rows]
                 else:
-                    dblist = [row[0] for row in rows]
+                    dblist = [text_value(row[0]) for row in rows]
                 found_match = self.__search_list(dblist, keys, actions, source)
             else:
                 action_column = args.get('action_column')
@@ -879,6 +885,8 @@ class FilterParser:
                             raise MatchError(lineno, err)
                     action = rows[0][actcolidx]
                     if action:
+                        if isinstance(action, bytes):
+                            action = action.decode('latin-1')
                         actions.clear()
                         actions.update(self.__buildactions(action, source))
                 found_match = 1
