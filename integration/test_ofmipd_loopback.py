@@ -13,6 +13,7 @@
 """Exercise the historical SMTP proxy on an isolated loopback socket."""
 
 from TMDA import SMTPEventLoop as asyncore
+import base64
 import contextlib
 import io
 import os
@@ -145,6 +146,18 @@ class SMTPLoopbackTests(unittest.TestCase):
             self.assertIn('.hidden', message)
             self.assertIn('A\xffB', message)
 
+
+    def test_auth_plain_accepts_original_eight_bit_password_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / 'auth'
+            path.write_bytes(b'alice:pass\xffword\n')
+            self.proxy['opts'].authfile = str(path)
+            self.assertIn(b'AUTH', self._command(b'EHLO local.example'))
+            credentials = base64.b64encode(b'\x00alice\x00pass\xffword')
+            self.assertEqual(
+                self._command(b'AUTH PLAIN ' + credentials),
+                b'235 AUTH successful\r\n',
+            )
 
     def test_two_independent_client_sessions(self):
         other = socket.create_connection(self.server.socket.getsockname(), timeout=2)
