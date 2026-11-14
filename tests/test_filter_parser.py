@@ -179,6 +179,26 @@ class FilterParserTests(unittest.TestCase):
         self.assertEqual(found, 1)
         self.assertEqual(actions['incoming'][0], 'accept')
 
+    def test_cdb_binary_only_binding_preserves_legacy_key(self):
+        class StrictBinaryCDB:
+            def __contains__(self, key):
+                if not isinstance(key, bytes):
+                    raise TypeError('binary keys only')
+                return key == b'alice@ex\xffmple.org'
+            def __getitem__(self, key):
+                return b'accept'
+
+        stub = types.ModuleType('cdb')
+        stub.init = lambda path: StrictBinaryCDB()
+        parser = self.module.FilterParser()
+        actions = {'incoming': ('hold', None)}
+        with patch.dict(sys.modules, {'cdb': stub}):
+            found = parser._FilterParser__search_cdb(
+                '/fake/old.cdb', ['Alice@ex\xffmple.org'],
+                actions, 'from-cdb')
+        self.assertEqual(found, 1)
+        self.assertEqual(actions['incoming'][0], 'accept')
+
     def test_dbm_stored_action_uses_text_not_bytes(self):
         with tempfile.TemporaryDirectory() as directory:
             path = os.path.join(directory, 'allow.dbm')
