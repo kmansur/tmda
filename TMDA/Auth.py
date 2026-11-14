@@ -432,6 +432,8 @@ class Auth(Util.Debugable):
             if self.__authremote['port']:
                 port = int(self.__authremote['port'])
             M = imaplib.IMAP4(self.__authremote['host'], port)
+            # Keep the original Python 2 eight-bit LOGIN credential encoding.
+            M._encoding = 'latin-1'
             try:
                 (type, data) = M.login(username, password)
                 self.debug( "Login response: %s %s" % (type, data) )
@@ -449,6 +451,8 @@ class Auth(Util.Debugable):
             if self.__authremote['port']:
                 port = int(self.__authremote['port'])
             M = imaplib.IMAP4_SSL(self.__authremote['host'], port)
+            # Keep the original Python 2 eight-bit LOGIN credential encoding.
+            M._encoding = 'latin-1'
             try:
                 (type, data) = M.login(username, password)
                 self.debug( "Login response: %s %s" % (type, data) )
