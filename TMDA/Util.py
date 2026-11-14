@@ -305,7 +305,7 @@ def make_date(timesecs=None):
 
 def file_to_dict(file, dict):
     """Process and add then each line of a textfile to a dictionary."""
-    with fileinput.input(file) as lines:
+    with fileinput.input(file, encoding='latin-1') as lines:
         for line in lines:
             line = line.strip()
             # Comment or blank line?
@@ -323,7 +323,7 @@ def file_to_dict(file, dict):
 def file_to_list(file):
     """Process and then append each line of file to list."""
     result = []
-    with fileinput.input(file) as lines:
+    with fileinput.input(file, encoding='latin-1') as lines:
         for line in lines:
             line = line.strip()
             # Comment or blank line?
@@ -378,7 +378,7 @@ def writefile(contents, fullpathname):
 def append_to_file(str, fullpathname):
     """Append a string to a text file if it isn't already in there."""
     if os.path.exists(fullpathname):
-        with fileinput.input(fullpathname) as lines:
+        with fileinput.input(fullpathname, encoding='latin-1') as lines:
             for line in lines:
                 line = line.strip().lower()
                 # Comment or blank line?
@@ -389,7 +389,7 @@ def append_to_file(str, fullpathname):
                     bare = str.expandtabs().split('#')[0].strip()
                     if bare.lower() == line:
                         return 0
-    with open(fullpathname, 'a+') as file:
+    with open(fullpathname, 'a+', encoding='latin-1') as file:
         file.write(str.strip() + '\n')
 
 
