@@ -161,6 +161,21 @@ class SMTPLoopbackTests(unittest.TestCase):
                 b'235 AUTH successful\r\n',
             )
 
+    def test_auth_login_accepts_original_eight_bit_password(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / 'auth'
+            path.write_bytes(b'alice:pass\xffword\n')
+            self.proxy['opts'].authfile = str(path)
+            self.assertIn(b'AUTH', self._command(b'EHLO local.example'))
+            self.assertEqual(self._command(b'AUTH LOGIN'),
+                             b'334 VXNlcm5hbWU6\r\n')
+            self.assertEqual(self._command(base64.b64encode(b'alice')),
+                             b'334 UGFzc3dvcmQ6\r\n')
+            self.assertEqual(
+                self._command(base64.b64encode(b'pass\xffword')),
+                b'235 AUTH successful\r\n',
+            )
+
     def test_auth_cram_md5_accepts_legacy_eight_bit_password(self):
         with tempfile.TemporaryDirectory() as directory:
             path = pathlib.Path(directory) / 'auth'
