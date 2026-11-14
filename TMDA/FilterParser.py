@@ -731,12 +731,24 @@ class FilterParser:
             if not key:
                 continue
             normalized = key.lower()
-            lookup = normalized
-            if lookup not in database:
-                encoded = normalized.encode('latin-1')
-                if encoded not in database:
+            # CDB bindings differ: some accept only text keys, while
+            # Python 3 versions often require raw bytes. Try the
+            # original eight-bit representation without assuming
+            # either binding's key type.
+            try:
+                encoded = normalized.encode('latin-1') if isinstance(normalized, str) else normalized
+            except UnicodeEncodeError:
+                encoded = normalized
+            lookup = None
+            for candidate in (encoded, normalized):
+                try:
+                    if candidate in database:
+                        lookup = candidate
+                        break
+                except (TypeError, UnicodeError):
                     continue
-                lookup = encoded
+            if lookup is None:
+                continue
             found_match = 1
             value = database[lookup]
             if value:
