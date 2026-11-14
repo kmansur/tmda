@@ -721,7 +721,9 @@ def build_dbm(filename):
                 value = linef[1]
             except IndexError:
                 value = ''
-            dbm[key] = value
+            # Python 2 DBM stored the original eight-bit key/value
+            # strings. Encode explicitly to avoid Python 3 UTF-8 keys.
+            dbm[key.encode('latin-1')] = value.encode('latin-1')
         dbm.close()
         for f in glob.glob(tmpname + '*'):
             # DBM backends may create a single file or a .dir/.pag
