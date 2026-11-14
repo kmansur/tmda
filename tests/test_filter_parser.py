@@ -59,6 +59,17 @@ class FilterParserTests(unittest.TestCase):
 
 
 
+    def test_legacy_eight_bit_filter_rules_preserve_address_bytes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'incoming')
+            with open(path, 'wb') as stream:
+                stream.write(b'from alice@ex\xffmple.org accept\n')
+            parser = self.module.FilterParser()
+            parser.read(path)
+            actions, _ = parser.firstmatch(
+                'user@example.org', ['alice@ex\xffmple.org'])
+            self.assertEqual(actions['incoming'][0], 'accept')
+
     def test_ezmlm_subscriber_bytes_use_legacy_encoding(self):
         with tempfile.TemporaryDirectory() as directory:
             folder = pathlib.Path(directory) / 'subscribers'
