@@ -100,7 +100,8 @@ if os.path.exists(TMDARC):
     else:
         import configparser
         cf = configparser.ConfigParser()
-        cf.read(TMDARC)
+        # Legacy ConfigParser configuration files contain raw 8-bit text.
+        cf.read(TMDARC, encoding='latin-1')
         cf_section = 'TMDA_CONFIG'
         for option in cf.options(cf_section):
             value = cf.get(cf_section, option)
