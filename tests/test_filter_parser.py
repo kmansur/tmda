@@ -141,6 +141,32 @@ class FilterParserTests(unittest.TestCase):
         self.assertEqual(found, 0)
         self.assertEqual(actions['incoming'][0], 'hold')
 
+    def test_sql_action_from_legacy_binary_column(self):
+        self.module.Defaults.USERNAME = 'alice'
+        self.module.Defaults.HOSTNAME = 'example.org'
+
+        class Cursor:
+            description = [('email',), ('action',)]
+            def execute(self, statement, params):
+                pass
+            def fetchall(self):
+                return [(b'sender@example.org', b'accept')]
+            def close(self):
+                pass
+
+        class DB:
+            def cursor(self):
+                return Cursor()
+
+        parser = self.module.FilterParser(DB())
+        actions = {'incoming': ('hold', None)}
+        found = parser._FilterParser__search_sql(
+            'SELECT email, action FROM rules',
+            {'action_column': 'action'},
+            ['sender@example.org'], actions, 'from-sql', 1)
+        self.assertEqual(found, 1)
+        self.assertEqual(actions['incoming'][0], 'accept')
+
     def test_cdb_python3_binary_keys_and_actions(self):
         database = {b'sender@example.com': b'accept'}
         stub = types.ModuleType('cdb')
