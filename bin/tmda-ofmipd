@@ -757,6 +757,8 @@ def run_remoteauth(username, password, localip):
             return 0
     elif remoteauth['proto'] in ('pop3', 'apop'):
         M = poplib.POP3(authhost, int(authport))
+        # Preserve Python 2's raw eight-bit POP3/APOP credentials.
+        M.encoding = 'latin-1'
         try:
             if remoteauth['proto'] == 'pop3':
                 M.user(username)
