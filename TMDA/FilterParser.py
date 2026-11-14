@@ -758,10 +758,18 @@ class FilterParser:
                 if not key:
                     continue
                 normalized = key.lower()
-                if normalized not in database:
-                    continue
+                try:
+                    lookup = normalized.encode('latin-1') if isinstance(normalized, str) else normalized
+                except UnicodeEncodeError:
+                    lookup = normalized
+                if lookup not in database:
+                    # Preserve compatibility with databases created by
+                    # Python 3 drivers that encode text keys themselves.
+                    if normalized not in database:
+                        continue
+                    lookup = normalized
                 found_match = 1
-                dbm_value = database[normalized]
+                dbm_value = database[lookup]
                 if dbm_value:
                     if isinstance(dbm_value, bytes):
                         dbm_value = dbm_value.decode('latin-1')
