@@ -14,6 +14,8 @@
 
 from TMDA import SMTPEventLoop as asyncore
 import base64
+import hashlib
+import hmac
 import contextlib
 import io
 import os
@@ -158,6 +160,19 @@ class SMTPLoopbackTests(unittest.TestCase):
                 self._command(b'AUTH PLAIN ' + credentials),
                 b'235 AUTH successful\r\n',
             )
+
+    def test_auth_cram_md5_accepts_legacy_eight_bit_password(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / 'auth'
+            path.write_bytes(b'alice:pass\xffword\n')
+            self.proxy['opts'].authfile = str(path)
+            self.assertIn(b'AUTH', self._command(b'EHLO local.example'))
+            challenge_reply = self._command(b'AUTH CRAM-MD5')
+            self.assertTrue(challenge_reply.startswith(b'334 '))
+            challenge = base64.b64decode(challenge_reply.split()[1])
+            digest = hmac.new(b'pass\xffword', challenge, hashlib.md5).hexdigest()
+            response = base64.b64encode(('alice ' + digest).encode('ascii'))
+            self.assertEqual(self._command(response), b'235 AUTH successful\r\n')
 
     def test_two_independent_client_sessions(self):
         other = socket.create_connection(self.server.socket.getsockname(), timeout=2)
