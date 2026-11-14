@@ -337,7 +337,9 @@ class FilterParser:
             raise exception
 
         try:
-            fp = open(filename)
+            # Python 2 filter rules were eight-bit text. Preserve all
+            # original bytes instead of depending on a UTF-8 locale.
+            fp = open(filename, encoding='latin-1')
             self.__pushfile(_FilterFile(filename))
             self.__parse(fp)
             fp.close()
