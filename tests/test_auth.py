@@ -72,9 +72,22 @@ class AuthenticationTests(unittest.TestCase):
         auth._Auth__update_authdict = lambda: None
         from TMDA import Errors
         with patch.dict('sys.modules', {'crypt': None, 'legacycrypt': None}):
-            with self.assertRaises(Errors.AuthError):
-                auth.authenticate_plain_file('alice', 'original-secret')
+            with patch('TMDA.UnixCrypt.crypt', side_effect=OSError('missing crypt')):
+                with self.assertRaises(Errors.AuthError):
+                    auth.authenticate_plain_file('alice', 'original-secret')
 
+
+    def test_encrypted_password_uses_native_unix_backend_when_stdlib_removed(self):
+        auth = self.auth
+        auth.debug = lambda message: None
+        auth._Auth__authfile = '/tmp/tmdauth-native-test'
+        auth._Auth__authdict = {'alice': 'abNativeHash'}
+        auth._Auth__authfile_allows_cleartext = False
+        auth._Auth__update_authdict = lambda: None
+        with patch.dict('sys.modules', {'crypt': None, 'legacycrypt': None}):
+            with patch('TMDA.UnixCrypt.crypt', return_value='abNativeHash') as native:
+                self.assertTrue(auth.authenticate_plain_file('alice', 'correct'))
+        native.assert_called_once_with('correct', 'ab')
 
     def test_original_eight_bit_password_file_is_reversible(self):
         with tempfile.TemporaryDirectory() as directory:
