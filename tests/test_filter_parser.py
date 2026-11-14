@@ -191,6 +191,18 @@ class FilterParserTests(unittest.TestCase):
             self.assertEqual(found, 1)
             self.assertEqual(actions['incoming'][0], 'accept')
 
+    def test_dbm_legacy_high_bit_key_is_not_recoded_as_utf8(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'legacy.dbm')
+            with dbm.open(path, 'c') as database:
+                database[b'alice@ex\xffmple.org'] = b'accept'
+            parser = self.module.FilterParser()
+            actions = {'incoming': ('hold', None)}
+            found = parser._FilterParser__search_dbm(
+                path, ['Alice@ex\xffmple.org'], actions, 'from-dbm')
+            self.assertEqual(found, 1)
+            self.assertEqual(actions['incoming'][0], 'accept')
+
     def test_dbm_no_match_preserves_default_action(self):
         with tempfile.TemporaryDirectory() as directory:
             path = os.path.join(directory, 'allow.dbm')
