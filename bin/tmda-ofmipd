@@ -793,15 +793,15 @@ def authfile2dict(authfile):
     dictionary containing username:password pairs.  Username is
     returned in lowercase."""
     authdict = {}
-    fp = open(authfile, 'r')
-    for line in fp:
-        line = line.strip()
-        if line == '':
-            continue
-        else:
+    # Python 2 treated authentication files as eight-bit strings.
+    # Latin-1 preserves every original credential byte on Python 3.
+    with open(authfile, 'r', encoding='latin-1') as fp:
+        for line in fp:
+            line = line.strip()
+            if line == '':
+                continue
             fields = line.split(':', 1)
             authdict[fields[0].lower().strip()] = fields[1].strip()
-    fp.close()
     return authdict
 
 
