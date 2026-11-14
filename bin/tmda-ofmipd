@@ -810,14 +810,14 @@ def ipauthmap2dict(ipauthmapfile):
     containing IP1 -> IP2:port hashes."""
     ipauthmap = {}
     try:
-        fp = open(ipauthmapfile, 'r')
-        for line in fp:
-            line = line.strip()
-            if line == '':
-                continue
-            ipdata = line.split(':', 1)
-            ipauthmap[ipdata[0].strip()] = ipdata[1].strip()
-        fp.close()
+        # Read Python 2-era map files without locale-based recoding.
+        with open(ipauthmapfile, 'r', encoding='latin-1') as fp:
+            for line in fp:
+                line = line.strip()
+                if line == '':
+                    continue
+                ipdata = line.split(':', 1)
+                ipauthmap[ipdata[0].strip()] = ipdata[1].strip()
     except IOError:
         pass
     return ipauthmap
