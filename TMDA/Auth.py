@@ -569,14 +569,14 @@ class Auth(Util.Debugable):
         containing IP1 -> IP2:port hashes."""
         ipauthmap = {}
         try:
-            fp = open(ipfile, 'r')
-            for line in fp:
-                line = line.strip()
-                if line == "":
-                    continue
-                ipdata = line.split(':', 1)
-                ipauthmap[ipdata[0].strip()] = ipdata[1].strip()
-            fp.close()
+            # Preserve byte values from Python 2-era IP authentication maps.
+            with open(ipfile, 'r', encoding='latin-1') as fp:
+                for line in fp:
+                    line = line.strip()
+                    if line == "":
+                        continue
+                    ipdata = line.split(':', 1)
+                    ipauthmap[ipdata[0].strip()] = ipdata[1].strip()
         except IOError:
             pass
         return ipauthmap
