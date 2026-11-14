@@ -463,6 +463,9 @@ class Auth(Util.Debugable):
             if self.__authremote['port']:
                 port = int(self.__authremote['port'])
             M = poplib.POP3(self.__authremote['host'], port)
+            # Python 2 sent POP3 credentials as raw eight-bit strings.
+            # Python 3 poplib defaults to UTF-8, changing legacy bytes.
+            M.encoding = 'latin-1'
             try:
                 if self.__authremote['proto'] == 'pop3':
                     M.user(username)
