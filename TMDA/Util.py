@@ -139,7 +139,7 @@ def issticky(path):
 def getvdomainprepend(address, vdomainsfile):
     ret_prepend = ''
     if os.path.exists(vdomainsfile):
-        fp = open(vdomainsfile, 'r')
+        fp = open(vdomainsfile, 'r', encoding='latin-1')
         # Parse the virtualdomains control file; see qmail-send(8) for
         # syntax rules.  All this because qmail doesn't store the original
         # envelope recipient in the environment.
@@ -370,9 +370,8 @@ def writefile(contents, fullpathname):
     if os.path.exists(fullpathname):
         raise IOError(fullpathname + ' already exists')
     else:
-        file = open(fullpathname, 'w')
-        file.write(contents)
-        file.close()
+        with open(fullpathname, 'w', encoding='latin-1') as file:
+            file.write(contents)
 
 
 def append_to_file(str, fullpathname):
@@ -910,9 +909,8 @@ def maketext(templatefile, vardict):
     if foundit is None:
         raise IOError("Can't find " + templatefile)
     else:
-        fp = open(foundit, 'r')
-        template = fp.read()
-        fp.close()
+        with open(foundit, 'r', encoding='latin-1') as fp:
+            template = fp.read()
         localdict = Defaults.__dict__.copy()
         localdict.update(vardict)
         text = template % localdict
