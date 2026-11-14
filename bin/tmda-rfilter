@@ -281,7 +281,7 @@ if (Defaults.MAIL_TRANSFER_AGENT == 'qmail' and
     # syntax rules.  All this because qmail doesn't store the original
     # envelope recipient in the environment.
     ousername, odomain = envelope_recipient.split('@', 1)
-    for line in fileinput.input(Defaults.VIRTUALDOMAINS):
+    for line in fileinput.input(Defaults.VIRTUALDOMAINS, encoding='latin-1'):
         vdomain_match = 0
         line = line.strip().lower()
         # Comment or blank line?
