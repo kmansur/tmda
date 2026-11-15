@@ -30,6 +30,7 @@ import email
 
 from . import Cookie
 from . import Defaults
+from . import Util
 from .Errors import *
 
 
@@ -40,8 +41,8 @@ def _split(address):
     domain = ''
     if address:
         at = address.rindex('@')
-        local = address[:at].lower()
-        domain = address[at+1:].lower()
+        local = Util.legacy_lower(address[:at])
+        domain = Util.legacy_lower(address[at+1:])
         local_parts = local.split(Defaults.RECIPIENT_DELIMITER)
     return local_parts, local, domain
 
@@ -206,7 +207,7 @@ class SenderAddress(TaggedAddress):
     # domain parts (eg, 'foo.example.com' => 'example.com') until there's a
     # match or there are no more parts left.
     def verify(self, sender):
-        sender = str(sender).lower()
+        sender = Util.legacy_lower(str(sender))
         hmac = self.local_parts[-1]
         try_hmac = Cookie.make_sender_cookie(sender)
         if try_hmac != hmac:
