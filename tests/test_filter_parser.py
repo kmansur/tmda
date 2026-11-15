@@ -225,6 +225,18 @@ class FilterParserTests(unittest.TestCase):
         self.assertEqual(found, 1)
         self.assertEqual(actions['incoming'][0], 'accept')
 
+    def test_cdb_original_ascii_only_casefold_keeps_high_bit_key(self):
+        stub = types.ModuleType('cdb')
+        stub.init = lambda _: {b'alice@ex\xc9mple.org': b'accept'}
+        parser = self.module.FilterParser()
+        actions = {'incoming': ('hold', None)}
+        with patch.dict(sys.modules, {'cdb': stub}):
+            found = parser._FilterParser__search_cdb(
+                '/fake/old.cdb', ['ALICE@EX\xc9MPLE.ORG'],
+                actions, 'from-cdb')
+        self.assertEqual(found, 1)
+        self.assertEqual(actions['incoming'][0], 'accept')
+
     def test_dbm_stored_action_uses_text_not_bytes(self):
         with tempfile.TemporaryDirectory() as directory:
             path = os.path.join(directory, 'allow.dbm')
