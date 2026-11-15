@@ -229,6 +229,7 @@ class UtilityTests(unittest.TestCase):
         from TMDA import Util
         defaults = types.ModuleType('TMDA.Defaults')
         defaults.PRIMARY_ADDRESS_MATCH = 1
+        defaults.RECIPIENT_DELIMITER = '-'
         with patch.dict(sys.modules, {'TMDA.Defaults': defaults}):
             with patch.object(TMDA, 'Defaults', defaults, create=True):
                 xp = 'ALICE@EX\xc9MPLE.ORG'
