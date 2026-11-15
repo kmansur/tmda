@@ -25,6 +25,7 @@ from optparse import OptionParser, make_option
 import os
 import sys
 import stat
+import subprocess
 
 try:
     import paths
@@ -47,9 +48,12 @@ def setvuserhomedir(vhomescript):
     username = ''
     for part in parts:
         username += part
-        fpin = os.popen(cmd % (username,))
-        vuserhomedir = fpin.read().strip()
-        if fpin.close() is None:
+        # Preserve the raw filesystem path returned by the virtual user
+        # helper instead of decoding it with the process text locale.
+        result = subprocess.run(cmd % (username,), shell=True,
+                                stdout=subprocess.PIPE)
+        vuserhomedir = os.fsdecode(result.stdout.strip())
+        if result.returncode == 0:
             os.environ['HOME'] = vuserhomedir
             os.chdir(vuserhomedir)
             break
