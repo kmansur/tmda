@@ -198,6 +198,14 @@ class UtilityTests(unittest.TestCase):
                     b'alice@ex\xffmple.org accept\n'
                     b'bob@ex\xffmple.org accept\n')
 
+    def test_legacy_runtask_stdout_retains_eight_bit_octets(self):
+        from TMDA import Util
+        output = Util.RunTask([
+            sys.executable, '-c',
+            "import os; os.write(1, b'legacy\\xff\\n')"
+        ])
+        self.assertEqual(output, ['legacy\xff\n'])
+
     def test_pipecmd_writes_original_message_bytes(self):
         from TMDA import Util
         code = ('import sys; data=sys.stdin.buffer.read(); '
