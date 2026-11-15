@@ -100,6 +100,24 @@ class UtilityTests(unittest.TestCase):
         self.assertEqual(captured, [('alice@example.com', 'accept')])
 
 
+    def test_legacy_lower_preserves_high_bit_octets(self):
+        from TMDA import Util
+        self.assertEqual(Util.legacy_lower('ALICE@EX\xc9MPLE.ORG'),
+                         'alice@ex\xc9mple.org')
+        self.assertEqual(Util.legacy_lower(b'ALICE@EX\xc9MPLE.ORG'),
+                         b'alice@ex\xc9mple.org')
+
+    def test_dbm_autobuild_preserves_uppercase_high_bit_bytes(self):
+        from TMDA import Util
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'whitelist')
+            with open(path, 'wb') as stream:
+                stream.write(b'ALICE@EX\xc9MPLE.ORG accept\n')
+            self.assertEqual(Util.build_dbm(path), 1)
+            with dbm.open(path + '.db', 'r') as database:
+                self.assertEqual(database[b'alice@ex\xc9mple.org'], b'accept')
+                self.assertNotIn(b'alice@ex\xe9mple.org', database)
+
     def test_dbm_autobuild_writes_original_eight_bit_key_bytes(self):
         from TMDA import Util
         with tempfile.TemporaryDirectory() as directory:
