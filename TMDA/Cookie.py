@@ -95,7 +95,8 @@ def make_dated_address(address):
 
 def make_sender_cookie(address):
     """Return a sender-style cookie based on the given address."""
-    address = address.lower()
+    # Historical cookies lowercased raw Python 2 bytes (ASCII only).
+    address = Util.legacy_lower(address)
     sender_cookie = HMAC.new(Defaults.CRYPT_KEY,
                              address).digest()[:Defaults.HMAC_BYTES]
     return binascii.hexlify(sender_cookie).decode('ascii')
@@ -131,7 +132,7 @@ def make_keyword_cookie(keyword):
 
 def make_keyword_address(address, keyword):
     """Return a full keyword-style e-mail address."""
-    keyword = keyword.lower()
+    keyword = Util.legacy_lower(keyword)
     keyword_cookie = make_keyword_cookie(keyword)
     username, hostname = address.split('@')
     keyword_address = '%s%s%s%s%s@%s' %(username,
