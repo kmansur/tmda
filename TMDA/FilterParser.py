@@ -1151,12 +1151,12 @@ class FilterParser:
             if source == 'size' and msg_size:
                 match_list = list(match)
                 operator = match_list[0] # first character should be < or >
-                bytes = ''.join(match_list)[1:] # rest is the size
+                size_bytes = ''.join(match_list)[1:] # rest is the size
                 found_match = None
                 if operator == '<':
-                    found_match = int(msg_size) < int(bytes)
+                    found_match = int(msg_size) < int(size_bytes)
                 elif operator == '>':
-                    found_match = int(msg_size) > int(bytes)
+                    found_match = int(msg_size) > int(size_bytes)
                 if found_match:
                     break
         if found_match:
