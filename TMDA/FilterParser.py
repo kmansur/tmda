@@ -855,7 +855,10 @@ class FilterParser:
     def __get_column_index(self, colname, cursor):
         """Return index of column named 'colname'."""
         for i in range(len(cursor.description)):
-            if colname == cursor.description[i][0]:
+            column = cursor.description[i][0]
+            if isinstance(column, bytes):
+                column = column.decode('latin-1')
+            if colname == column:
                 return i
         return -1
 
