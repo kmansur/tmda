@@ -25,6 +25,7 @@ from optparse import OptionGroup, OptionParser
 import os
 import sys
 import socket
+import subprocess
 
 try:
     import paths
@@ -289,9 +290,11 @@ if opts.vhomescript:
         sys.stdout.write('missing:%s\n' % message)
         sys.exit(1)
     cmd = "%s '%s' '%s'" % ( opts.vhomescript, user, domain )
-    fpin = os.popen(cmd)
-    vuserhomedir = fpin.read().strip()
-    if fpin.close() is None:
+    # A Python 2 text pipe returned filesystem bytes unchanged. Decode
+    # using the filesystem codec so legacy non-UTF-8 home paths survive.
+    result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
+    vuserhomedir = os.fsdecode(result.stdout.strip())
+    if result.returncode == 0:
         os.environ['HOME'] = vuserhomedir
         os.chdir(vuserhomedir)
     else:
