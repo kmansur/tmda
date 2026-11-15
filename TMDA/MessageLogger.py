@@ -42,7 +42,8 @@ class MessageLogger:
         self.msg = msg
         self.vardict = vardict
         self.logfile = logfile
-        self.log = open(self.logfile, 'a')
+        # Keep the original eight-bit message headers in existing logs.
+        self.log = open(self.logfile, 'a', encoding='latin-1')
 
     def write(self):
         """
