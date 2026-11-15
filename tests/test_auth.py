@@ -89,6 +89,22 @@ class AuthenticationTests(unittest.TestCase):
                 self.assertTrue(auth.authenticate_plain_file('alice', 'correct'))
         native.assert_called_once_with('correct', 'ab')
 
+    def test_encrypted_high_bit_password_uses_native_bytes_even_with_stdlib(self):
+        auth = self.auth
+        auth.debug = lambda message: None
+        auth._Auth__authfile = '/tmp/tmdauth-high-bit-test'
+        auth._Auth__authdict = {'alice': 'abOriginalHash'}
+        auth._Auth__authfile_allows_cleartext = False
+        auth._Auth__update_authdict = lambda: None
+        fake_stdlib = types.ModuleType('crypt')
+        fake_stdlib.crypt = lambda *args: self.fail(
+            'Python 3 Unicode crypt wrapper must not recode eight-bit passwords')
+        with patch.dict('sys.modules', {'crypt': fake_stdlib}):
+            with patch('TMDA.UnixCrypt.crypt', return_value='abOriginalHash') as native:
+                self.assertTrue(
+                    auth.authenticate_plain_file('alice', 'pass\xffword'))
+        native.assert_called_once_with('pass\xffword', 'ab')
+
     def test_original_eight_bit_password_file_is_reversible(self):
         with tempfile.TemporaryDirectory() as directory:
             path = os.path.join(directory, 'tmdauth')
