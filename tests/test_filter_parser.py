@@ -71,6 +71,20 @@ class FilterParserTests(unittest.TestCase):
                 'user@example.org', ['alice@ex\xffmple.org'])
             self.assertEqual(actions['incoming'][0], 'accept')
 
+    def test_text_filter_ascii_only_casefold_preserves_high_bit_address(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'incoming')
+            with open(path, 'wb') as stream:
+                stream.write(b'from ALICE@EX\xc9MPLE.ORG accept\n')
+            parser = self.module.FilterParser()
+            parser.read(path)
+            actions, _ = parser.firstmatch(
+                'user@example.org', ['ALICE@EX\xc9MPLE.ORG'])
+            self.assertEqual(actions['incoming'][0], 'accept')
+            actions, _ = parser.firstmatch(
+                'user@example.org', ['alice@ex\xe9mple.org'])
+            self.assertFalse(actions)
+
     def test_ezmlm_subscriber_bytes_use_legacy_encoding(self):
         with tempfile.TemporaryDirectory() as directory:
             folder = pathlib.Path(directory) / 'subscribers'
