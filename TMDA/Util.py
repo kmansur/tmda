@@ -815,7 +815,7 @@ def findmatch(list, addrs):
     the string if it exists (for exp and ext addresses only)."""
     for address in addrs:
         if address:
-            address = address.lower()
+            address = legacy_lower(address)
             for p in list:
                 stringparts = p.split()
                 p = stringparts[0]
