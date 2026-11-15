@@ -372,16 +372,21 @@ class Auth(Util.Debugable):
         if self.__authfile_allows_cleartext and password == pw:
             self.debug("Comparing un-encrypted password.")
             return True
-        try:
-            import crypt
-        except ImportError:
+        # Python 2 passed raw eight-bit password bytes to crypt(3).
+        # Even where Python 3 still ships its crypt wrapper, its Unicode
+        # handling may change those bytes. Use the native binding for
+        # historical non-ASCII passwords on every supported Python 3.
+        if isinstance(password, str) and any(ord(c) > 127 for c in password):
+            from . import UnixCrypt as crypt
+        else:
             try:
-                import legacycrypt as crypt
+                import crypt
             except ImportError:
-                # The stdlib crypt module was removed in Python 3.13.
-                # Keep Unix crypt(3) password verification available
-                # through the original operating system implementation.
-                from . import UnixCrypt as crypt
+                try:
+                    import legacycrypt as crypt
+                except ImportError:
+                    # Python 3.13 removed the standard library module.
+                    from . import UnixCrypt as crypt
         self.debug("Comparing encrypted password.")
         try:
             return crypt.crypt(password, pw[:2]) == pw
