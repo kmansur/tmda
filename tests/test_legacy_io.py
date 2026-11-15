@@ -197,6 +197,43 @@ class UtilityTests(unittest.TestCase):
                 Util.file_to_list(path),
                 ['ALICE@example.com', 'bob@example.com'])
 
+    def test_append_to_file_matches_python2_case_without_changing_high_bits(self):
+        from TMDA import Util
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'whitelist')
+            with open(path, 'wb') as stream:
+                stream.write(b'ALICE@EX\xc9MPLE.ORG accept\n')
+            self.assertEqual(
+                Util.append_to_file('alice@ex\xc9mple.org accept', path), 0)
+            self.assertEqual(
+                Util.append_to_file('alice@ex\xe9mple.org accept', path), None)
+            with open(path, 'rb') as stream:
+                self.assertEqual(stream.read(),
+                    b'ALICE@EX\xc9MPLE.ORG accept\n'
+                    b'alice@ex\xe9mple.org accept\n')
+
+    def test_virtualdomain_prepend_keeps_legacy_eight_bit_bytes(self):
+        from TMDA import Util
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'virtualdomains')
+            with open(path, 'wb') as stream:
+                stream.write(b'EX\xc9MPLE.ORG:IN\xc9\n')
+            self.assertEqual(
+                Util.getvdomainprepend('alice@ex\xc9mple.org', path),
+                'in\xc9')
+            self.assertEqual(
+                Util.getvdomainprepend('alice@ex\xe9mple.org', path), '')
+
+    def test_confirm_append_address_preserves_historical_byte_casing(self):
+        from TMDA import Defaults, Util
+        with patch.object(Defaults, 'PRIMARY_ADDRESS_MATCH', 1, create=True):
+            xp = 'ALICE@EX\xc9MPLE.ORG'
+            rp = 'alice@ex\xc9mple.org'
+            self.assertEqual(Util.confirm_append_address(xp, rp), xp)
+            self.assertEqual(
+                Util.confirm_append_address(
+                    'alice@ex\xe9mple.org', rp), rp)
+
     def test_eight_bit_legacy_address_lists_preserve_original_octets(self):
         from TMDA import Util
         with tempfile.TemporaryDirectory() as directory:
