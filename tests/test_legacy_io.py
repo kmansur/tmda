@@ -206,6 +206,20 @@ class UtilityTests(unittest.TestCase):
         ])
         self.assertEqual(output, ['legacy\xff\n'])
 
+    def test_virtual_user_helper_preserves_non_utf8_filesystem_path(self):
+        from TMDA import Util
+        with tempfile.TemporaryDirectory() as directory:
+            helper = os.path.join(directory, 'vhome-helper')
+            with open(helper, 'w', encoding='ascii') as stream:
+                stream.write(
+                    '#!' + sys.executable + '\n'
+                    'import os\n'
+                    "os.write(1, b'/home/legacy-\\xff\\n')\n"
+                )
+            os.chmod(helper, 0o700)
+            home = Util.getvuserhomedir('alice', 'example.org', helper)
+            self.assertEqual(os.fsencode(home), b'/home/legacy-\xff')
+
     def test_pipecmd_writes_original_message_bytes(self):
         from TMDA import Util
         code = ('import sys; data=sys.stdin.buffer.read(); '
