@@ -161,6 +161,19 @@ class SMTPLoopbackTests(unittest.TestCase):
                 b'235 AUTH successful\r\n',
             )
 
+    def test_auth_plain_preserves_high_bit_legacy_username(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / 'auth'
+            path.write_bytes(b'ALICE@EX\xc9MPLE.ORG:secret\n')
+            self.proxy['opts'].authfile = str(path)
+            self.assertIn(b'AUTH', self._command(b'EHLO local.example'))
+            credentials = base64.b64encode(
+                b'\x00ALICE@EX\xc9MPLE.ORG\x00secret')
+            self.assertEqual(
+                self._command(b'AUTH PLAIN ' + credentials),
+                b'235 AUTH successful\r\n',
+            )
+
     def test_auth_login_accepts_original_eight_bit_password(self):
         with tempfile.TemporaryDirectory() as directory:
             path = pathlib.Path(directory) / 'auth'
