@@ -937,7 +937,7 @@ class FilterParser:
             #
             # regular 'from' or 'to' addresses
             if source in ('from', 'to'):
-                found_match = Util.findmatch([match.lower()], keys)
+                found_match = Util.findmatch([Util.legacy_lower(match)], keys)
                 if found_match:
                     break
             # 'from-file' or 'to-file', including autocdb functionality
