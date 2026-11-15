@@ -29,8 +29,8 @@ import stat
 try:
     import paths
 except ImportError:
-    # Prepend /usr/lib/python2.x/site-packages/TMDA/pythonlib
-    sitedir = os.path.join(sys.prefix, 'lib', 'python'+sys.version[:3],
+    # Optional TMDA/pythonlib lookup when paths.py is unavailable
+    sitedir = os.path.join(sys.prefix, 'lib', 'python'+('%d.%d' % sys.version_info[:2]),
                            'site-packages', 'TMDA', 'pythonlib')
     sys.path.insert(0, sitedir)
 
