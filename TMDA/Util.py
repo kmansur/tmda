@@ -176,10 +176,12 @@ def getvdomainprepend(address, vdomainsfile):
 def getvuserhomedir(user, domain, script):
     """Return the home directory of a qmail virtual domain user."""
     cmd = "%s %s %s" % (script, user, domain)
-    fpin = os.popen(cmd)
-    vuserhomedir = fpin.read()
-    fpin.close()
-    return vuserhomedir.strip()
+    # Python 2 returned filesystem bytes from the vpopmail/vmailmgr
+    # helper. Decode with the filesystem codec and surrogateescape so
+    # paths containing non-UTF-8 octets remain usable on Python 3.
+    process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    output, _ = process.communicate()
+    return os.fsdecode(output).strip()
 
 
 def getuserparams(login):
