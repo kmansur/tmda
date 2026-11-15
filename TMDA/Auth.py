@@ -306,7 +306,7 @@ class Auth(Util.Debugable):
         except ValueError:
             return 0
         self.__update_authdict()
-        password = self.__authdict.get(username.lower(), 0)
+        password = self.__authdict.get(Util.legacy_lower(username), 0)
         if password == 0:
             return 0
         newhexdigest = hmac.new(password.encode('latin-1') if isinstance(password, str) else password,
@@ -358,13 +358,13 @@ class Auth(Util.Debugable):
         Return 1 for a match, 0 otherwise."""
         self.debug( "Trying file authentication with '%s'" % self.__authfile )
         self.__update_authdict()
-        pw = self.__authdict.get(username.lower(), 0)
+        pw = self.__authdict.get(Util.legacy_lower(username), 0)
         if pw == 0:
-            self.debug( "No user %s" % username.lower() )
+            self.debug( "No user %s" % Util.legacy_lower(username) )
             raise Errors.AuthError( "User %s not found in password file" % username, \
                   "Ensure that this user exists in '%s'" % self.__authfile)
         if pw == "":
-            self.debug( "Blank %s password" % username.lower() )
+            self.debug( "Blank %s password" % Util.legacy_lower(username) )
             raise Errors.AuthError( "User %s is denied login" % username, \
                   "Blank password in file '%s'" % self.__authfile)
         # TMDA's original cleartext mode does not need the Unix crypt
@@ -577,7 +577,7 @@ class Auth(Util.Debugable):
                     continue
                 else:
                     fields = line.split(':', 1)
-                    authdict[fields[0].lower().strip()] = fields[1].strip()
+                    authdict[Util.legacy_lower(fields[0]).strip()] = fields[1].strip()
         return authdict
 
     def __ipfile2dict(self, ipfile):
