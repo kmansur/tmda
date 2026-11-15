@@ -1045,10 +1045,19 @@ class FilterParser:
                             mmdb_data = Serializer.load(mmdb_file, encoding='latin-1')
                         else:
                             mmdb_data = Serializer.load(mmdb_file)
-                    mmdb_addylist = mmdb_data[mmdb_key]
+                    # Mailman 2.0 marshal databases may contain Python 2
+                    # string keys represented as bytes under Python 3.
+                    if mmdb_key in mmdb_data:
+                        mmdb_addylist = mmdb_data[mmdb_key]
+                    else:
+                        mmdb_addylist = mmdb_data[mmdb_key.encode('latin-1')]
                     # Make sure mmdb_addylist is a list of e-mail addresses.
-                    if type(mmdb_addylist) is dict:
-                         mmdb_addylist = list(mmdb_data[mmdb_key].keys())
+                    if isinstance(mmdb_addylist, dict):
+                        mmdb_addylist = list(mmdb_addylist.keys())
+                    mmdb_addylist = [
+                        item.decode('latin-1') if isinstance(item, bytes) else item
+                        for item in mmdb_addylist
+                    ]
                     for addy in keys:
                         if addy and addy.lower() in mmdb_addylist:
                             found_match = 1
