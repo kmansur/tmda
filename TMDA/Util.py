@@ -306,6 +306,21 @@ def make_date(timesecs=None):
     return email.utils.formatdate(timesecs, localtime=True)
 
 
+def legacy_lower(value):
+    """Apply the original Python 2 byte-string ASCII case folding.
+
+    Python 3 Unicode lower() also changes Latin-1 high-bit characters
+    (e.g. 0xC9), whereas Python 2 str.lower() kept their octets under
+    the historical C locale used by TMDA's mail address lists.
+    """
+    if isinstance(value, bytes):
+        return value.lower()
+    try:
+        return value.encode('latin-1').lower().decode('latin-1')
+    except UnicodeEncodeError:
+        return value.lower()
+
+
 def file_to_dict(file, dict):
     """Process and add then each line of a textfile to a dictionary."""
     with fileinput.input(file, encoding='latin-1') as lines:
@@ -317,7 +332,7 @@ def file_to_dict(file, dict):
             else:
                 fields = line.split()
                 key = fields[0]
-                key = key.lower()
+                key = legacy_lower(key)
                 value = fields[1]
                 dict[key] = value
     return dict
@@ -689,7 +704,7 @@ def build_cdb(filename):
         cdb = cdb.cdbmake(cdbname, cdbname + '.' + tmpname)
         for line in file_to_list(filename):
             linef = line.split()
-            key = linef[0].lower()
+            key = legacy_lower(linef[0])
             try:
                 value = linef[1]
             except IndexError:
@@ -719,7 +734,7 @@ def build_dbm(filename):
         dbm = dbm.open(tmpname, 'n')
         for line in file_to_list(filename):
             linef = line.split()
-            key = linef[0].lower()
+            key = legacy_lower(linef[0])
             try:
                 value = linef[1]
             except IndexError:
