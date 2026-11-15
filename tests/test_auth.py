@@ -114,6 +114,23 @@ class AuthenticationTests(unittest.TestCase):
                 self.auth._Auth__authfile2dict(path),
                 {'alice': 'pass\xffword'})
 
+    def test_legacy_high_bit_username_is_stable_in_password_file_lookup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'tmdauth')
+            with open(path, 'wb') as stream:
+                stream.write(b'ALICE@EX\xc9MPLE.ORG:secret\n')
+            entries = self.auth._Auth__authfile2dict(path)
+        self.assertEqual(entries, {'alice@ex\xc9mple.org': 'secret'})
+        self.assertNotIn('alice@ex\xe9mple.org', entries)
+        auth = self.auth
+        auth.debug = lambda message: None
+        auth._Auth__authfile = '/tmp/tmdauth-high-bit-user-test'
+        auth._Auth__authdict = entries
+        auth._Auth__authfile_allows_cleartext = True
+        auth._Auth__update_authdict = lambda: None
+        self.assertTrue(auth.authenticate_plain_file(
+            'ALICE@EX\xc9MPLE.ORG', 'secret'))
+
     def test_legacycrypt_password_verification(self):
         auth = self.auth
         auth.debug = lambda message: None
