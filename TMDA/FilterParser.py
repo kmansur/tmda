@@ -1006,9 +1006,9 @@ class FilterParser:
                             subs = fp.read().split('\x00')
                         for sub in subs:
                             if sub:
-                                ezmlm_list.append(sub.split('T', 1)[1].lower())
+                                ezmlm_list.append(Util.legacy_lower(sub.split('T', 1)[1]))
                     for key in keys:
-                        if key and key.lower() in ezmlm_list:
+                        if key and Util.legacy_lower(key) in ezmlm_list:
                             found_match = 1
                             break
                 except OSError:
@@ -1062,7 +1062,7 @@ class FilterParser:
                         for item in mmdb_addylist
                     ]
                     for addy in keys:
-                        if addy and addy.lower() in mmdb_addylist:
+                        if addy and Util.legacy_lower(addy) in mmdb_addylist:
                             found_match = 1
                             break
                 if found_match:
