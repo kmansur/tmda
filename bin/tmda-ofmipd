@@ -294,7 +294,7 @@ class SMTPSession(asyncore.async_chat):
             password = b64_decode(b64password)
         except:
             return 501
-        self.__auth_username = username.lower()
+        self.__auth_username = Util.legacy_lower(username)
         self.__auth_password = password
         if remoteauth['enable']:
             # Try first with the remote auth
@@ -308,7 +308,7 @@ class SMTPSession(asyncore.async_chat):
         if (not opts.fallback) and (remoteauth['enable'] or opts.authprog):
             return 0
         authdict = authfile2dict(opts.authfile)
-        if authdict.get(username.lower(), 0) != password:
+        if authdict.get(Util.legacy_lower(username), 0) != password:
             return 0
         else:
             return 1
@@ -323,7 +323,7 @@ class SMTPSession(asyncore.async_chat):
             username, username, password = response.split('\0')
         except ValueError:
             return 0
-        self.__auth_username = username.lower()
+        self.__auth_username = Util.legacy_lower(username)
         self.__auth_password = password
         if remoteauth['enable']:
             # Try first with the remote auth
@@ -337,7 +337,7 @@ class SMTPSession(asyncore.async_chat):
         if (not opts.fallback) and (remoteauth['enable'] or opts.authprog):
             return 0
         authdict = authfile2dict(opts.authfile)
-        if authdict.get(username.lower(), 0) != password:
+        if authdict.get(Util.legacy_lower(username), 0) != password:
             return 0
         else:
             return 1
@@ -353,8 +353,8 @@ class SMTPSession(asyncore.async_chat):
         except ValueError:
             return 0
         authdict = authfile2dict(opts.authfile)
-        password = authdict.get(username.lower(), 0)
-        self.__auth_username = username.lower()
+        password = authdict.get(Util.legacy_lower(username), 0)
+        self.__auth_username = Util.legacy_lower(username)
         self.__auth_password = password
         if password == 0:
             return 0
@@ -806,7 +806,7 @@ def authfile2dict(authfile):
             if line == '':
                 continue
             fields = line.split(':', 1)
-            authdict[fields[0].lower().strip()] = fields[1].strip()
+            authdict[Util.legacy_lower(fields[0]).strip()] = fields[1].strip()
     return authdict
 
 
