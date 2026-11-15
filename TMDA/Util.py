@@ -208,7 +208,8 @@ def RunTask(Args):
     os.close(Write)
 
     # Capture contents of pipe
-    Read = os.fdopen(Read)
+    # Preserve Python 2's eight-bit command output without locale decoding.
+    Read = os.fdopen(Read, encoding='latin-1')
     RetVal = Read.readlines()
     Read.close()
 
