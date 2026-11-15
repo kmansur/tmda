@@ -225,14 +225,18 @@ class UtilityTests(unittest.TestCase):
                 Util.getvdomainprepend('alice@ex\xe9mple.org', path), '')
 
     def test_confirm_append_address_preserves_historical_byte_casing(self):
-        from TMDA import Defaults, Util
-        with patch.object(Defaults, 'PRIMARY_ADDRESS_MATCH', 1, create=True):
-            xp = 'ALICE@EX\xc9MPLE.ORG'
-            rp = 'alice@ex\xc9mple.org'
-            self.assertEqual(Util.confirm_append_address(xp, rp), xp)
-            self.assertEqual(
-                Util.confirm_append_address(
-                    'alice@ex\xe9mple.org', rp), rp)
+        import TMDA
+        from TMDA import Util
+        defaults = types.ModuleType('TMDA.Defaults')
+        defaults.PRIMARY_ADDRESS_MATCH = 1
+        with patch.dict(sys.modules, {'TMDA.Defaults': defaults}):
+            with patch.object(TMDA, 'Defaults', defaults, create=True):
+                xp = 'ALICE@EX\xc9MPLE.ORG'
+                rp = 'alice@ex\xc9mple.org'
+                self.assertEqual(Util.confirm_append_address(xp, rp), xp)
+                self.assertEqual(
+                    Util.confirm_append_address(
+                        'alice@ex\xe9mple.org', rp), rp)
 
     def test_eight_bit_legacy_address_lists_preserve_original_octets(self):
         from TMDA import Util
