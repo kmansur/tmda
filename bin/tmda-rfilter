@@ -282,7 +282,7 @@ if (Defaults.MAIL_TRANSFER_AGENT == 'qmail' and
     ousername, odomain = envelope_recipient.split('@', 1)
     for line in fileinput.input(Defaults.VIRTUALDOMAINS, encoding='latin-1'):
         vdomain_match = 0
-        line = line.strip().lower()
+        line = Util.legacy_lower(line.strip())
         # Comment or blank line?
         if line == '' or line[0] in '#':
             continue
@@ -801,7 +801,7 @@ def main():
         for a in addresses:
             emaddy = a[1]
             sender_dict[emaddy] = None
-    sender_list = [ addr.lower() for addr in list(sender_dict.keys()) ]
+    sender_list = [Util.legacy_lower(addr) for addr in sender_dict]
     # Process confirmation messages first.
     confirm_done_hdr = msgin.get('x-tmda-confirm-done')
     if confirm_done_hdr:
