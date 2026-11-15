@@ -142,8 +142,8 @@ def make_field(cookie_type, cookie_option, from_address, to_address):
                 _hostname = Defaults.HOSTNAME.lower()
                 _sender = _username + '@' + _hostname
                 params = FilterParser.create_sql_params(
-                    recipient=to_address.lower(),
-                    fromheader=from_address.lower(),
+                    recipient=Util.legacy_lower(to_address),
+                    fromheader=Util.legacy_lower(from_address),
                     username=_username, hostname=_hostname, sender=_sender)
                 Util.db_insert(Defaults.DB_CONNECTION,
                                Defaults.DB_BARE_APPEND,
@@ -317,7 +317,7 @@ def main():
         address_list = args
     # If running through qfilter, get recipient list from QMAILRCPTS.
     elif 'QMAILRCPTS' in os.environ:
-        address_list = os.environ['QMAILRCPTS'].lower().split('\n')[:-1]
+        address_list = Util.legacy_lower(os.environ['QMAILRCPTS']).split('\n')[:-1]
     # Otherwise get recipients from the headers.
     else:
         address_list = []
@@ -407,11 +407,11 @@ def main():
             # assume a list
             mft_addrs = Defaults.MAIL_FOLLOWUP_TO
         if mft_addrs:
-            mft_addrs_lower = [a.lower().strip() for a in mft_addrs]
+            mft_addrs_lower = [Util.legacy_lower(a).strip() for a in mft_addrs]
             toccs = getaddresses(msgout.get_all('to', [])
                                  + msgout.get_all('cc', []))
             tocc_addrs = [a[1].strip() for a in toccs]
-            tocc_addrs_lower = [a.lower() for a in tocc_addrs]
+            tocc_addrs_lower = [Util.legacy_lower(a) for a in tocc_addrs]
             for a in tocc_addrs_lower:
                 if a in mft_addrs_lower:
                     msgout['Mail-Followup-To'] = ', '.join(tocc_addrs)
