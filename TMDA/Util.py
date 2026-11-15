@@ -144,11 +144,11 @@ def getvdomainprepend(address, vdomainsfile):
         # syntax rules.  All this because qmail doesn't store the original
         # envelope recipient in the environment.
         u, d = address.split('@', 1)
-        ousername = u.lower()
-        odomain = d.lower()
+        ousername = legacy_lower(u)
+        odomain = legacy_lower(d)
         for line in fp.readlines():
             vdomain_match = 0
-            line = line.strip().lower()
+            line = legacy_lower(line.strip())
             # Comment or blank line?
             if line == '' or line[0] in '#':
                 continue
@@ -397,14 +397,14 @@ def append_to_file(str, fullpathname):
     if os.path.exists(fullpathname):
         with fileinput.input(fullpathname, encoding='latin-1') as lines:
             for line in lines:
-                line = line.strip().lower()
+                line = legacy_lower(line.strip())
                 # Comment or blank line?
                 if line == '' or line[0] in '#':
                     continue
                 else:
                     line = line.expandtabs().split('#')[0].strip()
                     bare = str.expandtabs().split('#')[0].strip()
-                    if bare.lower() == line:
+                    if legacy_lower(bare) == line:
                         return 0
     with open(fullpathname, 'a+', encoding='latin-1') as file:
         file.write(str.strip() + '\n')
@@ -446,7 +446,7 @@ def normalize_sender(sender):
     """
     sender = sender.replace(' ', '_')
     sender = sender.replace('/', ':')
-    sender = sender.lower()
+    sender = legacy_lower(sender)
     return sender[:POSIX_NAME_MAX - 22]
 
 
@@ -463,8 +463,8 @@ def confirm_append_address(xp, rp):
     if '@' not in rp or '@' not in xp:
         return rp
     from . import Defaults
-    rpl = rp.lower()
-    xpl = xp.lower()
+    rpl = legacy_lower(rp)
+    xpl = legacy_lower(xp)
     rplocal, rphost = rpl.split('@', 1)
     rpdomain = '.'.join(rphost.split('.')[-2:])
     rpusername = rplocal.split(Defaults.RECIPIENT_DELIMITER)[0]
