@@ -698,8 +698,8 @@ class FilterParser:
         # lines from the file with the first field in each line
         # lowercased.
         addrlist = [' '.join(
-            (lambda f1, f2=None: f2 and [f1.lower(), f2]
-                                          or [f1.lower()])(*line.split(None, 1))) for line in addrlist]
+            (lambda f1, f2=None: f2 and [Util.legacy_lower(f1), f2]
+                                          or [Util.legacy_lower(f1)])(*line.split(None, 1))) for line in addrlist]
         found_match = Util.findmatch(addrlist, keys)
         if found_match:
             # The second column of the line may contain an
