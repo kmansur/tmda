@@ -14,6 +14,7 @@
 
 import dbm
 import importlib
+import marshal
 import pathlib
 import pickle
 import os
@@ -248,6 +249,21 @@ class FilterParserTests(unittest.TestCase):
             ]
             actions, _ = parser.firstmatch(
                 'local@example.com', ['sender@example.com'])
+            self.assertEqual(actions.get('incoming', (None,))[0], 'accept')
+
+    def test_legacy_mailman_marshal_binary_membership(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config = pathlib.Path(directory) / 'config.db'
+            with config.open('wb') as stream:
+                marshal.dump({b'members': {b'sender@ex\xffmple.org': 1}},
+                             stream)
+            parser = self.module.FilterParser()
+            parser.filterlist = [
+                ('from-mailman', {'attr': 'members'}, directory,
+                 {'incoming': ('accept', None)}, 1),
+            ]
+            actions, _ = parser.firstmatch(
+                'local@example.com', ['sender@ex\xffmple.org'])
             self.assertEqual(actions.get('incoming', (None,))[0], 'accept')
 
     def test_pipe_rule_matching(self):
