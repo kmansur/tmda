@@ -730,7 +730,7 @@ class FilterParser:
         for key in keys:
             if not key:
                 continue
-            normalized = key.lower()
+            normalized = Util.legacy_lower(key)
             # CDB bindings differ: some accept only text keys, while
             # Python 3 versions often require raw bytes. Try the
             # original eight-bit representation without assuming
@@ -769,7 +769,7 @@ class FilterParser:
             for key in keys:
                 if not key:
                     continue
-                normalized = key.lower()
+                normalized = Util.legacy_lower(key)
                 try:
                     lookup = normalized.encode('latin-1') if isinstance(normalized, str) else normalized
                 except UnicodeEncodeError:
