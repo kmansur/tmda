@@ -71,6 +71,8 @@ class CookieTests(unittest.TestCase):
 
         util = types.ModuleType('TMDA.Util')
         util.seconds = lambda timeout: 7 * 86400 if timeout == '7d' else 0
+        util.legacy_lower = lambda value: (value.lower() if isinstance(value, bytes)
+            else value.encode('latin-1').lower().decode('latin-1'))
 
         cls.modules = patch.dict(sys.modules, {
             'TMDA.Defaults': defaults,
@@ -113,6 +115,13 @@ class CookieTests(unittest.TestCase):
             self.cookie.make_dated_cookie(1700000000, '7d'),
             timestamp + '.' + legacy_hex(timestamp),
         )
+
+    def test_sender_cookie_preserves_high_bit_uppercase_octets(self):
+        sender = 'ALICE@EX\xc9MPLE.ORG'
+        expected = legacy_hex('alice@ex\xc9mple.org')
+        self.assertEqual(self.cookie.make_sender_cookie(sender), expected)
+        # Unicode lower() would change the original 0xc9 to 0xe9.
+        self.assertNotEqual(expected, legacy_hex('alice@ex\xe9mple.org'))
 
     def test_sender_cookie(self):
         self.assertEqual(
