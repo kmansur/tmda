@@ -36,6 +36,7 @@ $ collectaddys > ~/.tmda/lists/whitelist
 import mailbox
 import os
 from email.utils import parseaddr
+from TMDA import Util
 
 # Collect addresses from these headers only; season to taste.
 hdrs = [ 'from', 'return-path', 'sender' ]
@@ -57,7 +58,8 @@ for path in os.listdir('.'):
                 if hdr in msg:
                     address = parseaddr(msg.get(hdr))[1]
                     if address:
-                        uniq[address.lower()] = address.lower()
+                        normalized = Util.legacy_lower(address)
+                        uniq[normalized] = normalized
     finally:
         mb.close()
 
