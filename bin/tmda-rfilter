@@ -293,16 +293,16 @@ if (Defaults.MAIL_TRANSFER_AGENT == 'qmail' and
         else:
             vdomain, prepend = line.split(':', 1)
             # domain:prepend
-            if vdomain == odomain.lower():
+            if vdomain == Util.legacy_lower(odomain):
                 vdomain_match = 1
             # .domain:prepend (wildcard)
             elif not vdomain.split('.', 1)[0]:
-                if odomain.lower().find(vdomain) != -1:
+                if Util.legacy_lower(odomain).find(vdomain) != -1:
                     vdomain_match = 1
             # user@domain:prepend
             else:
                 try:
-                    if vdomain.split('@', 1)[1] == odomain.lower():
+                    if vdomain.split('@', 1)[1] == Util.legacy_lower(odomain):
                         vdomain_match = 1
                 except IndexError:
                     pass
@@ -539,8 +539,8 @@ def verify_confirm_cookie(confirm_cookie, confirm_action):
                                            Defaults.CONFIRM_APPEND) != 0:
                         logit('CONFIRM_APPEND', Defaults.CONFIRM_APPEND)
                 if Defaults.DB_CONFIRM_APPEND and Defaults.DB_CONNECTION:
-                    _username = Defaults.USERNAME.lower()
-                    _hostname = Defaults.HOSTNAME.lower()
+                    _username = Util.legacy_lower(Defaults.USERNAME)
+                    _hostname = Util.legacy_lower(Defaults.HOSTNAME)
                     _recipient = _username + '@' + _hostname
                     params = FilterParser.create_sql_params(
                         recipient=_recipient, username=_username,
