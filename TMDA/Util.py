@@ -886,7 +886,7 @@ def maketext(templatefile, vardict):
         searchdirs = []
         searchdirs.append(os.environ.get('TMDA_TEMPLATE_DIR'))
         if Defaults.TEMPLATE_DIR_MATCH_SENDER and Defaults.TEMPLATE_DIR:
-            sender = os.environ.get('SENDER').lower()
+            sender = legacy_lower(os.environ.get('SENDER'))
             searchdirs.append(os.path.join(Defaults.TEMPLATE_DIR, sender))
             try:
                 domainparts = sender.split('@', 1)[1].split('.')
@@ -897,7 +897,7 @@ def maketext(templatefile, vardict):
             except IndexError:
                 pass
         if Defaults.TEMPLATE_DIR_MATCH_RECIPIENT and Defaults.TEMPLATE_DIR:
-            recipient = os.environ.get('TMDA_RECIPIENT').lower()
+            recipient = legacy_lower(os.environ.get('TMDA_RECIPIENT'))
             searchdirs.append(os.path.join(Defaults.TEMPLATE_DIR, recipient))
             try:
                 recippart, domainpart = recipient.split('@',1)
