@@ -36,8 +36,10 @@ cdbfile = sys.argv[1]
 database = cdb.init(cdbfile)
 for key in database.keys():
     value = database[key]
-    if isinstance(key, bytes):
-        key = key.decode('latin-1')
-    if isinstance(value, bytes):
-        value = value.decode('latin-1')
-    print('%s %s' % (key, value))
+    # Python 2 printed the original database octets.  Python 3 text
+    # stdout would re-encode Latin-1 values as UTF-8.
+    if isinstance(key, str):
+        key = key.encode('latin-1')
+    if isinstance(value, str):
+        value = value.encode('latin-1')
+    sys.stdout.buffer.write(key + b' ' + value + b'\n')
