@@ -36,10 +36,17 @@ $ collectaddys > ~/.tmda/lists/whitelist
 import mailbox
 import os
 from email.utils import parseaddr
-from TMDA import Util
 
 # Collect addresses from these headers only; season to taste.
 hdrs = [ 'from', 'return-path', 'sender' ]
+
+def legacy_lower(address):
+    # Python 2 lowercased ASCII bytes without altering Latin-1 octets.
+    try:
+        return address.encode('latin-1').lower().decode('latin-1')
+    except UnicodeEncodeError:
+        return address.lower()
+
 
 uniq = {}
 
@@ -58,7 +65,7 @@ for path in os.listdir('.'):
                 if hdr in msg:
                     address = parseaddr(msg.get(hdr))[1]
                     if address:
-                        normalized = Util.legacy_lower(address)
+                        normalized = legacy_lower(address)
                         uniq[normalized] = normalized
     finally:
         mb.close()
