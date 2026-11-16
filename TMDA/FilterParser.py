@@ -740,17 +740,22 @@ class FilterParser:
             except UnicodeEncodeError:
                 encoded = normalized
             lookup = None
+            value = None
             for candidate in (encoded, normalized):
                 try:
-                    if candidate in database:
-                        lookup = candidate
-                        break
-                except (TypeError, UnicodeError):
+                    # Some CDB bindings implement only __getitem__, not
+                    # __contains__. Fetching the value supports both.
+                    candidate_value = database[candidate]
+                except (KeyError, TypeError, UnicodeError):
                     continue
+                if candidate_value is None:
+                    continue
+                lookup = candidate
+                value = candidate_value
+                break
             if lookup is None:
                 continue
             found_match = 1
-            value = database[lookup]
             if value:
                 if isinstance(value, bytes):
                     value = value.decode('latin-1')
