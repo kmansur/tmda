@@ -35,8 +35,11 @@ level.
 
 Requirements
 ============
-Python, and also the PyDNS module, available at
-http://pydns.sourceforge.net/
+Python 3, and the py3dns distribution (which retains the original
+PyDNS import name and DNS.mxlookup() API):
+https://pypi.org/project/py3dns/
+
+Install the optional DNS dependency with: python3 -m pip install py3dns
 
 Usage
 =====
