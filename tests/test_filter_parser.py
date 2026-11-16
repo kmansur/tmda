@@ -239,6 +239,26 @@ class FilterParserTests(unittest.TestCase):
         self.assertEqual(found, 1)
         self.assertEqual(actions['incoming'][0], 'accept')
 
+    def test_cdb_binding_with_getitem_but_no_contains(self):
+        class LegacyBinding:
+            def __getitem__(self, key):
+                if not isinstance(key, bytes):
+                    raise TypeError('byte keys required')
+                if key == b'sender@example.com':
+                    return b'accept'
+                raise KeyError(key)
+
+        stub = types.ModuleType('cdb')
+        stub.init = lambda pathname: LegacyBinding()
+        parser = self.module.FilterParser()
+        actions = {'incoming': ('hold', None)}
+        with patch.dict(sys.modules, {'cdb': stub}):
+            found = parser._FilterParser__search_cdb(
+                '/fake/list.cdb', ['SENDER@EXAMPLE.COM'],
+                actions, 'from-cdb')
+        self.assertEqual(found, 1)
+        self.assertEqual(actions['incoming'][0], 'accept')
+
     def test_cdb_original_ascii_only_casefold_keeps_high_bit_key(self):
         stub = types.ModuleType('cdb')
         stub.init = lambda _: {b'alice@ex\xc9mple.org': b'accept'}
